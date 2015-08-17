@@ -11,5 +11,5 @@ use Behat\Gherkin\Node\TableNode;
 /**
  * Provides pre-built step definitions for interacting with Drupal.
  */
-class DKANContext extends RawDrupalContext implements TranslatableContext {
+class DKANContext extends DrupalContext {
 }
