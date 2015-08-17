@@ -1,17 +1,12 @@
 <?php
+
+use Drupal\DrupalExtension\Context\DKAN\DKANContext;
+
 /**
- * @file
- * Feature context.
+ * Defines application features from the specific context.
  */
-// Contexts.
-use Drupal\DrupalExtension\Context;
-// Helpers.
-use Behat\Gherkin\Node\PyStringNode;
-use Behat\Gherkin\Node\TableNode;
-/**
- * Class FeatureContext.
- */
-class FeatureContext extends RawDKANContext {
+class DKANFeatureContext extends DKANContext {
+
   /**
    * Initializes context.
    *
@@ -21,4 +16,5 @@ class FeatureContext extends RawDKANContext {
    */
   public function __construct() {
   }
+
 }
