@@ -1,7 +1,7 @@
 <?php
 namespace Drupal\DrupalExtension\Context;
 
-class DKANContext extends rawDKANContext
+class DKANContext extends RawDKANContext
 {
 /**
    * @Given pages:
