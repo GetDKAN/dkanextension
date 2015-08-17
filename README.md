@@ -6,14 +6,14 @@ This creates a feature context for DKAN and NuCivic specific steps.
 
 1. Create a ``composer.json`` file with the following:
 
-```yml
+```JSON
 {
   "require": {
     "nucivic/dkanextension": "dev-master"
   },
   "config": {
     "bin-dir": "bin/"
-  }
+  },
   "scripts": {
     "post-install-cmd": "mv bin/bddkan bin/behat"
   }
