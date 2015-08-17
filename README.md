@@ -1,1 +1,39 @@
-# dkanextension
+# Behat DKAN nextension
+
+This creates a feature context for DKAN and NuCivic specific steps.
+
+## Install
+
+Create a ``composer.json`` file with the following:
+
+```
+{
+  "require": {
+    "nucivic/dkanextension": "dev-master"
+  },
+  "config": {
+    "bin-dir": "bin/"
+  }
+  "scripts": {
+    "post-install-cmd": "mv bin/bddkan bin/behat"
+  }
+}
+```
+
+Type ``composer install``
+
+You should have a ``features/bootstrap/DKANFeatureContext.php`` file that inherets ``DKANContext``.
+
+## Steps
+
+Some of the included steps are:
+
+* ``Given Dataset``
+* ``Given Group``
+
+## TODO
+
+- [ ] Make sure scripts works on install
+- [ ] Add tests
+- [ ] Deploy on DKAN and related modules
+
