@@ -1,6 +1,6 @@
 {
   "require": {
-    "nucivic/dkanextension": "*"
+    "nucivic/dkanextension": "dev-master"
   },
   "config": {
     "bin-dir": "bin/"
