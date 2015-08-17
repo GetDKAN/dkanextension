@@ -1,5 +1,5 @@
 {
-    "name": "behat/drupal-dkan-extension",
+    "name": "nucivic/drupal-dkan-extension",
     "description": "Provides base DKAN class for Drupal Extension",
     "keywords": ["drupal", "web", "test"],
     "require": {
@@ -14,7 +14,7 @@
     ],
     "autoload": {
         "psr-0": {
-          "Drupal\\DrupalExtension\\Context": "src/"
+          "Drupal\\DrupalExtension\\Context\\DKAN": "src/"
         }
     }
 }
