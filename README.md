@@ -6,7 +6,7 @@ This creates a feature context for DKAN and NuCivic specific steps.
 
 1. Create a ``composer.json`` file with the following:
 
-```JSON
+```json
 {
   "require": {
     "nucivic/dkanextension": "dev-master"
@@ -39,5 +39,5 @@ Some of the included steps are:
 - [ ] Add tests
 - [ ] Deploy on DKAN and related modules
 
-## Hattip
+## Hat tip
 Scripts directory inspired by https://github.com/BR0kEN-/behat-drupal-propeople-context
