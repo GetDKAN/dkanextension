@@ -1,4 +1,4 @@
-# Behat DKAN nextension
+# Behat DKAN Context
 
 This creates a feature context for DKAN and NuCivic specific steps.
 
@@ -37,3 +37,5 @@ Some of the included steps are:
 - [ ] Add tests
 - [ ] Deploy on DKAN and related modules
 
+## Hattip
+Scripts directory inspired by https://github.com/BR0kEN-/behat-drupal-propeople-context
