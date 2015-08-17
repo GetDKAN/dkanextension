@@ -1,0 +1,8 @@
+{
+  "require": {
+    "nucivic/dkanextension": "*"
+  },
+  "config": {
+    "bin-dir": "bin/"
+  }
+}
