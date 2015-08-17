@@ -1,0 +1,14 @@
+{
+    "name": "nucivic/dkanextension",
+    "description": "Provides base DKAN class for Drupal Extension",
+    "require": {
+        "drupal/drupal-extension": "~3.0"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "acouch",
+            "email": "aaron@nucivic.com"
+        }
+    ]
+}
