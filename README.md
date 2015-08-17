@@ -4,9 +4,9 @@ This creates a feature context for DKAN and NuCivic specific steps.
 
 ## Install
 
-Create a ``composer.json`` file with the following:
+1. Create a ``composer.json`` file with the following:
 
-```
+```yml
 {
   "require": {
     "nucivic/dkanextension": "dev-master"
@@ -20,7 +20,9 @@ Create a ``composer.json`` file with the following:
 }
 ```
 
-Type ``composer install``
+2. Install dependencies: ``composer install``
+
+3. Initialize: ``behat --init`` 
 
 You should have a ``features/bootstrap/DKANFeatureContext.php`` file that inherets ``DKANContext``.
 
