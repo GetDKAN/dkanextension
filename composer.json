@@ -1,5 +1,5 @@
 {
-    "name": "nucivic/dkanextension",
+    "name": "behat/drupal-dkan-extension",
     "description": "Provides base DKAN class for Drupal Extension",
     "keywords": ["drupal", "web", "test"],
     "require": {
