@@ -30,8 +30,32 @@ You should have a ``features/bootstrap/DKANFeatureContext.php`` file that inhere
 
 Some of the included steps are:
 
-* ``Given Dataset``
-* ``Given Group``
+* ``Given datasets``
+* ``Given resources``
+* ``Given groups``
+* ``Given groups memberships``
+
+Example:
+
+```yaml
+ Background:
+    Given users:
+      | name    | mail             | roles                |
+      | John    | john@test.com    | administrator        |
+    Given groups:
+      | title    | author | published |
+      | Group 01 | Admin  | Yes       |
+    And group memberships:
+      | user    | group    | role on group        | membership status |
+      | Gabriel | Group 01 | administrator member | Active            |
+    And datasets:
+      | title      | format | author  | published        | Date         | tags   |
+      | Dataset 01 | CSV    | Gabriel | Yes              | Feb 01, 2015 | Health |
+    And resources:
+      | title       | dataset    | published |
+      | Resource 01 | Dataset 01 | Yes       |
+```
+
 
 ## TODO
 
