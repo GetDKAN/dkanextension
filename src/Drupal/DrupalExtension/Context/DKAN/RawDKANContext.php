@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\DrupalExtension\Context;
+namespace Drupal\DrupalExtension\Context\DKAN;
 
 use Behat\Behat\Tester\Exception\PendingException;
 use Drupal\DrupalExtension\Context\RawDrupalContext;

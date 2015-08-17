@@ -1,5 +1,5 @@
 <?php
-namespace Drupal\DrupalExtension\Context;
+namespace Drupal\DrupalExtension\Context\DKAN;
 
 class DKANContext extends RawDKANContext
 {
