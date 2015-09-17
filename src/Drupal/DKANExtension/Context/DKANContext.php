@@ -34,54 +34,6 @@ class DKANContext extends RawDrupalContext implements SnippetAcceptingContext {
     date_default_timezone_set('America/New_York');
   }
 
-  /******************************
-   * HOOKS
-   ******************************/
-
-  /**
-   * @AfterStep
-   */
-  public function debugStepsAfter(AfterStepScope $scope)
-  {
-    // Tests tagged with @debugEach will perform each step and wait for [ENTER] to proceed.
-    if ($this->scenario->hasTag('debugEach')) {
-      $env = $scope->getEnvironment();
-      $drupalContext = $env->getContext('Drupal\DrupalExtension\Context\DrupalContext');
-      $minkContext = $env->getContext('Drupal\DrupalExtension\Context\MinkContext');
-      // Print the current URL.
-      try {
-        $minkContext->printCurrentUrl();
-      }
-      catch(Behat\Mink\Exception\DriverException $e) {
-        print "No Url";
-      }
-      $drupalContext->iPutABreakpoint();
-    }
-  }
-
-  /**
-   * @BeforeStep
-   */
-  public function debugStepsBefore(BeforeStepScope $scope)
-  {
-    // Tests tagged with @debugBeforeEach will wait for [ENTER] before running each step.
-    if ($this->scenario->hasTag('debugBeforeEach')) {
-      $env = $scope->getEnvironment();
-      $drupalContext = $env->getContext('Drupal\DrupalExtension\Context\DrupalContext');
-      $drupalContext->iPutABreakpoint();
-    }
-  }
-
-  /**
-   * @BeforeScenario
-   */
-  public function registerScenario(BeforeScenarioScope $scope) {
-    // Scenario not usually available to steps, so we do ourselves.
-    // See issue
-    $this->scenario = $scope->getScenario();
-    //print  $this->scenario->getTitle();
-  }
-
   /**
    * @BeforeScenario @mail
    */
