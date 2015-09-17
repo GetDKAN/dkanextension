@@ -4,10 +4,7 @@ namespace Drupal\DKANExtension\Context;
 use Drupal\DrupalExtension\Context\RawDrupalContext;
 use Drupal\DrupalExtension\Context\DrupalContext;
 use Behat\Behat\Context\SnippetAcceptingContext;
-use Behat\Behat\Hook\Scope\BeforeStepScope;
-use Behat\Behat\Hook\Scope\AfterStepScope;
-use Behat\Behat\Hook\Scope\BeforeScenarioScope;
-use Behat\Gherkin\Node\PyStringNode;
+use Behat\Mink\Exception\UnsupportedDriverActionException as UnsupportedDriverActionException;
 use Behat\Gherkin\Node\TableNode;
 use Behat\Mink\Exception\DriverException;
 use Behat\Behat\Tester\Exception\PendingException;
@@ -185,10 +182,15 @@ class DKANContext extends RawDrupalContext implements SnippetAcceptingContext {
       $session = $this->getSession();
       $url = $this->pages[$page_title]['url'];
       $session->visit($this->locatePath($url));
-      $code = $session->getStatusCode();
-
-      if ($code < 200 || $code >= 300) {
-        throw new Exception("Page $page_title ($url) visited, but it returned a non-2XX response code of $code.");
+      try {
+        $code = $session->getStatusCode();
+        if ($code < 200 || $code >= 300) {
+          throw new Exception("Page $page_title ($url) visited, but it returned a non-2XX response code of $code.");
+        }
+      }
+      catch (UnsupportedDriverActionException $e) {
+        // Some drivers don't support status codes, namely Selenium2Driver so
+        // just drive on.
       }
     }
     else {
