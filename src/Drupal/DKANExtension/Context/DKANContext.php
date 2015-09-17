@@ -1,5 +1,5 @@
 <?php
-namespace Drupal\DkanExtension\Context;
+namespace Drupal\DKANExtension\Context;
 
 use Drupal\DrupalExtension\Context\RawDrupalContext;
 use Drupal\DrupalExtension\Context\DrupalContext;
