@@ -11,6 +11,7 @@ use Behat\Gherkin\Node\PyStringNode;
 use Behat\Gherkin\Node\TableNode;
 use Behat\Mink\Exception\DriverException;
 use Behat\Behat\Tester\Exception\PendingException;
+use \stdClass;
 
 /**
  * Defines application features from the specific context.
@@ -309,7 +310,7 @@ class DKANContext extends RawDrupalContext implements SnippetAcceptingContext {
     );
 
     foreach ($groupsTable as $groupHash) {
-      $node = new stdClass();
+      $node = new stdClass;
       $node->type = 'group';
       foreach($groupHash as $field => $value) {
         if(isset($field_map[$field])) {
