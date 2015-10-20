@@ -14,7 +14,7 @@
     ],
     "autoload": {
         "psr-0": {
-          "Drupal\\DrupalExtension\\Context\\DKAN": "src/"
+          "Drupal\\DKANExtension\\": "src/"
         }
     }
 }
