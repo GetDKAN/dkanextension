@@ -3,6 +3,7 @@
 namespace Drupal\DKANExtension\Context;
 
 
+use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Gherkin\Node\TableNode;
 
@@ -21,6 +22,13 @@ class ResourceContext extends RawDKANEntityContext{
             'resource',
             'node'
         );
+    }
+
+    /**
+     * @AfterScenario
+     */
+    public function deleteAll(AfterScenarioScope $scope) {
+        $this->wrapper->delete();
     }
 
     /**

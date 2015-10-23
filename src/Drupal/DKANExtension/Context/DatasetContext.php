@@ -48,7 +48,7 @@ class DatasetContext extends RawDKANEntityContext {
     unset($entity->og_group_ref);
     $wrapper = entity_metadata_wrapper('node', $entity, array('bundle' => 'dataset'));
     $wrapper->og_group_ref->set(array($group->nid));
-    $wrapper->save();
+    $entity = $wrapper->raw();
 
     return $entity;
   }
