@@ -16,6 +16,7 @@ class ResourceContext extends RawDKANEntityContext{
             'publisher' => 'og_group_ref',
             'published' => 'published',
             'resource format' => 'field_format',
+            'dataset' => 'field_dataset_ref',
         ),
             'resource',
             'node'
@@ -39,6 +40,7 @@ class ResourceContext extends RawDKANEntityContext{
         parent::gatherContexts($scope);
         $environment = $scope->getEnvironment();
         $this->groupContext = $environment->getContext('Drupal\DKANExtension\Context\GroupContext');
+        $this->datasetContext = $environment->getContext('Drupal\DKANExtension\Context\DatasetContext');
     }
 
     /**
@@ -46,16 +48,17 @@ class ResourceContext extends RawDKANEntityContext{
      */
     public function create($entity){
         $entity = parent::create($entity);
-        $context = $this->groupContext;
 
         $body = $entity->body;
-        $group = $context->getGroupByName($entity->og_group_ref);
+        $group = $this->groupContext->getGroupByName($entity->og_group_ref);
         $terms = taxonomy_get_term_by_name($entity->field_format);
         $term = array_values($terms)[0];
+        $dataset = $this->datasetContext->getDatasetByName($entity->field_dataset_ref);
 
         unset($entity->body);
         unset($entity->og_group_ref);
         unset($entity->field_format);
+        unset($entity->field_dataset_ref);
         $wrapper = entity_metadata_wrapper('node', $entity, array('bundle' => 'resource'));
         $wrapper->body->set(array('value' => $body));
 
@@ -63,7 +66,11 @@ class ResourceContext extends RawDKANEntityContext{
         $wrapper->og_group_ref->set(array($group->nid));
 
         $wrapper->field_format->set($term->tid);
-        $wrapper->save();
+        $wrapper->field_dataset_ref->set(array($dataset->nid));
+
+        $entity = $wrapper->raw();
+
+        $this->wrapper = $wrapper;
 
         return $entity;
     }

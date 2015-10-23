@@ -46,7 +46,7 @@ class DatasetContext extends RawDKANEntityContext {
     $group = $context->getGroupByName($entity->og_group_ref);
 
     unset($entity->og_group_ref);
-    $wrapper = entity_metadata_wrapper('node', $entity, array('bundle' => 'resource'));
+    $wrapper = entity_metadata_wrapper('node', $entity, array('bundle' => 'dataset'));
     $wrapper->og_group_ref->set(array($group->nid));
     $wrapper->save();
 
@@ -85,5 +85,20 @@ class DatasetContext extends RawDKANEntityContext {
     if (!$found) {
       throw new \Exception(sprintf("The text '%s' was not found", $text));
     }
+  }
+
+  /**
+   * Get Dataset by name
+   *
+   * @param $name
+   * @return stdClass dataset or FALSE
+   */
+  public function getDatasetByName($name){
+    foreach($this->entities as $dataset) {
+      if ($dataset->title == $name) {
+        return $dataset;
+      }
+    }
+    return FALSE;
   }
 }
