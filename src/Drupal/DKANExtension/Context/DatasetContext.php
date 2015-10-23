@@ -3,6 +3,7 @@ namespace Drupal\DKANExtension\Context;
 
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Gherkin\Node\TableNode;
+use SearchApiIndex;
 use \stdClass;
 use Symfony\Component\Console\Helper\Table;
 
@@ -45,7 +46,6 @@ class DatasetContext extends RawDKANEntityContext {
     $group = $context->getGroupByName($entity->og_group_ref);
     $ids['und'][0]['target_id'] = $group->nid;
     $entity->og_group_ref = $ids;
-
     return $entity;
   }
 
@@ -54,6 +54,9 @@ class DatasetContext extends RawDKANEntityContext {
    */
   public function addDatasets(TableNode $datasetsTable) {
     parent::addMultipleFromTable($datasetsTable);
+    // TO-DO: Should be delegated to an outside search context file for common use
+    $index = search_api_index_load("datasets");
+    $index->index($this->entities);
   }
 
   /**
