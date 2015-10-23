@@ -1,8 +1,10 @@
 <?php
 namespace Drupal\DKANExtension\Context;
 
+use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Gherkin\Node\TableNode;
 use \stdClass;
+use Symfony\Component\Console\Helper\Table;
 
 /**
  * Defines application features from the specific context.
@@ -19,9 +21,32 @@ class DatasetContext extends RawDKANEntityContext {
       'resource format' => 'resource format',
       'tags' => 'field_tags',
     ),
-      'group',
+      'dataset',
       'node'
     );
+  }
+
+  /**
+   * @BeforeScenario
+   */
+  public function gatherContexts(BeforeScenarioScope $scope){
+    parent::gatherContexts($scope);
+    $environment = $scope->getEnvironment();
+    $this->groupContext = $environment->getContext('Drupal\DKANExtension\Context\GroupContext');
+  }
+
+  /**
+   * Override create to substitute in group id
+   */
+  public function create($entity){
+    $entity = parent::create($entity);
+    $context = $this->groupContext;
+    // To-do: add in support for multiple groups
+    $group = $context->getGroupByName($entity->og_group_ref);
+    $ids['und'][0]['target_id'] = $group->nid;
+    $entity->og_group_ref = $ids;
+
+    return $entity;
   }
 
   /**

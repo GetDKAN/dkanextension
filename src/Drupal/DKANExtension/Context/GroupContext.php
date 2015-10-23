@@ -75,7 +75,7 @@ class GroupContext extends RawDKANEntityContext {
    * @param $name
    * @return stdClass group or FALSE
    */
-  private function getGroupByName($name) {
+  public function getGroupByName($name) {
     foreach($this->entities as $group) {
       if ($group->title == $name) {
         return $group;
