@@ -44,8 +44,12 @@ class DatasetContext extends RawDKANEntityContext {
     $context = $this->groupContext;
     // To-do: add in support for multiple groups
     $group = $context->getGroupByName($entity->og_group_ref);
-    $ids['und'][0]['target_id'] = $group->nid;
-    $entity->og_group_ref = $ids;
+
+    unset($entity->og_group_ref);
+    $wrapper = entity_metadata_wrapper('node', $entity, array('bundle' => 'resource'));
+    $wrapper->og_group_ref->set(array($group->nid));
+    $wrapper->save();
+
     return $entity;
   }
 

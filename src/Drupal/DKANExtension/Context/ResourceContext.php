@@ -47,18 +47,24 @@ class ResourceContext extends RawDKANEntityContext{
     public function create($entity){
         $entity = parent::create($entity);
         $context = $this->groupContext;
-        // To-do: add in support for multiple groups
-        $group = $context->getGroupByName($entity->og_group_ref);
-        $ids['und'][0]['target_id'] = $group->nid;
-        $entity->og_group_ref = $ids;
 
-        // Should be delegated to another method?
-        $ids = array();
+        $body = $entity->body;
+        $group = $context->getGroupByName($entity->og_group_ref);
         $terms = taxonomy_get_term_by_name($entity->field_format);
-        foreach($terms as $term) {
-            $ids['und'][0]['tid'] = $term->tid;
-        }
-        $entity->field_format = $ids;
+        $term = array_values($terms)[0];
+
+        unset($entity->body);
+        unset($entity->og_group_ref);
+        unset($entity->field_format);
+        $wrapper = entity_metadata_wrapper('node', $entity, array('bundle' => 'resource'));
+        $wrapper->body->set(array('value' => $body));
+
+        // To-do: add in support for multiple groups
+        $wrapper->og_group_ref->set(array($group->nid));
+
+        $wrapper->field_format->set($term->tid);
+        $wrapper->save();
+
         return $entity;
     }
 
