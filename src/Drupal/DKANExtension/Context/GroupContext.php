@@ -1,7 +1,9 @@
 <?php
 namespace Drupal\DKANExtension\Context;
 
+use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use Behat\Gherkin\Node\TableNode;
+use EntityFieldQuery;
 use \stdClass;
 
 /**
@@ -18,6 +20,29 @@ class GroupContext extends RawDKANEntityContext {
       'group',
       'node'
     );
+  }
+
+  public function deleteAll(AfterScenarioScope $scope){
+    foreach($this->entities as $entity){
+      $id = $entity->nid->value();
+      $query = new EntityFieldQuery();
+      $result = $query
+          ->entityCondition('entity_type', 'og_membership')
+          ->propertyCondition('gid', $id, '=')
+          ->execute();
+      foreach(reset($result) as $membership){
+        $ids[] = $membership->id;
+      }
+
+      _og_orphans_delete($ids);
+      $entity->delete();
+    }
+  }
+
+  public function create($entity){
+    $entity = parent::create($entity);
+    $wrapper = entity_metadata_wrapper('node', $entity, array('bundle' => 'group'));
+    return $wrapper;
   }
 
   /**
@@ -77,7 +102,7 @@ class GroupContext extends RawDKANEntityContext {
    */
   public function getGroupByName($name) {
     foreach($this->entities as $group) {
-      if ($group->title == $name) {
+      if ($group->title->value() == $name) {
         return $group;
       }
     }
