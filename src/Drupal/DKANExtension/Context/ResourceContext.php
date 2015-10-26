@@ -25,20 +25,14 @@ class ResourceContext extends RawDKANEntityContext{
     }
 
     /**
-     * @AfterScenario
-     */
-    public function deleteAll(AfterScenarioScope $scope) {
-        $this->wrapper->delete();
-    }
-
-    /**
      * @Given resources:
      */
     public function addResources(TableNode $resourcesTable){
         parent::addMultipleFromTable($resourcesTable);
         // TO-DO: Should be delegated to an outside search context file for common use
         $index = search_api_index_load("datasets");
-        $index->index($this->entities);
+        foreach($this->entities as $entity)
+            $index->index(array($entity->raw()));
     }
 
     /**
@@ -71,16 +65,12 @@ class ResourceContext extends RawDKANEntityContext{
         $wrapper->body->set(array('value' => $body));
 
         // To-do: add in support for multiple groups
-        $wrapper->og_group_ref->set(array($group->nid));
+        $wrapper->og_group_ref->set(array($group->nid->value()));
 
         $wrapper->field_format->set($term->tid);
-        $wrapper->field_dataset_ref->set(array($dataset->nid));
+        $wrapper->field_dataset_ref->set(array($dataset->nid->value()));
 
-        $entity = $wrapper->raw();
-
-        $this->wrapper = $wrapper;
-
-        return $entity;
+        return $wrapper;
     }
 
 }

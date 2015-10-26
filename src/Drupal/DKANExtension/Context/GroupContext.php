@@ -20,6 +20,13 @@ class GroupContext extends RawDKANEntityContext {
     );
   }
 
+
+  public function create($entity){
+    $entity = parent::create($entity);
+    $wrapper = entity_metadata_wrapper('node', $entity, array('bundle' => 'group'));
+    return $wrapper;
+  }
+
   /**
    * @Given groups:
    */
@@ -77,7 +84,7 @@ class GroupContext extends RawDKANEntityContext {
    */
   public function getGroupByName($name) {
     foreach($this->entities as $group) {
-      if ($group->title == $name) {
+      if ($group->title->value() == $name) {
         return $group;
       }
     }

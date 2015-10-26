@@ -43,14 +43,13 @@ class DatasetContext extends RawDKANEntityContext {
     $entity = parent::create($entity);
     $context = $this->groupContext;
     // To-do: add in support for multiple groups
-    $group = $context->getGroupByName($entity->og_group_ref);
+    $groupwrapper = $context->getGroupByName($entity->og_group_ref);
 
     unset($entity->og_group_ref);
     $wrapper = entity_metadata_wrapper('node', $entity, array('bundle' => 'dataset'));
-    $wrapper->og_group_ref->set(array($group->nid));
-    $entity = $wrapper->raw();
+    $wrapper->og_group_ref->set(array($groupwrapper->nid->value()));
 
-    return $entity;
+    return $wrapper;
   }
 
   /**
@@ -60,7 +59,9 @@ class DatasetContext extends RawDKANEntityContext {
     parent::addMultipleFromTable($datasetsTable);
     // TO-DO: Should be delegated to an outside search context file for common use
     $index = search_api_index_load("datasets");
-    $index->index($this->entities);
+    foreach($this->entities as $entity)
+      $index->index(array($entity->raw()));
+
   }
 
   /**
@@ -95,7 +96,7 @@ class DatasetContext extends RawDKANEntityContext {
    */
   public function getDatasetByName($name){
     foreach($this->entities as $dataset) {
-      if ($dataset->title == $name) {
+      if ($dataset->title->value() == $name) {
         return $dataset;
       }
     }
