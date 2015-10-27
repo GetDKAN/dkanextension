@@ -130,7 +130,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
       }
       if(isset($entity->author)) {
         $author = user_load_by_name($entity->author);
-        $entity->author = $author->uid;
+        $entity->uid = $author->uid;
       }
       $entities[] = $entity;
     }
