@@ -9,6 +9,8 @@ class DKANDataStoryContext extends RawDKANEntityContext{
     public function __construct(){
         parent::__construct(array(
                 'title' => 'title',
+                'author' => 'author',
+                'status' => 'status',
                 'description' => 'body',
                 'tags' => 'field_tags',
             ),
