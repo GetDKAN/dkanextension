@@ -89,6 +89,16 @@ class DatasetContext extends RawDKANEntityContext {
   }
 
   /**
+   * @Then the Dataset search updates behind the scenes
+   */
+  public function theDatasetSearchUpdatesBehindTheScenes()
+  {
+    $index = search_api_index_load('datasets');
+    $items =  search_api_get_items_to_index($index);
+    search_api_index_specific_items($index, $items);
+  }
+
+  /**
    * Get Dataset by name
    *
    * @param $name
