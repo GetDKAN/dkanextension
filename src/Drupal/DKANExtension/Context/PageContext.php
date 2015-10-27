@@ -8,7 +8,7 @@ use Behat\Gherkin\Node\TableNode;
 /**
  * Defines application features from the specific context.
  */
-class PageContext extends Context {
+class PageContext implements Context {
 
   // Store pages to be referenced in an array.
   protected $pages = array();

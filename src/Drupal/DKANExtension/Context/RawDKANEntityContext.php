@@ -45,8 +45,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    */
   public function deleteAll(AfterScenarioScope $scope) {
     foreach ($this->entities as $entity) {
-      $ids = entity_extract_ids($this->entity_type, $entity);
-      entity_delete($this->entity_type, entity_id($this->entity_type, $ids[0]));
+      $entity->delete();
     }
   }
 
@@ -76,13 +75,14 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
   }
 
   public function create($entity) {
-    return entity_create($this->entity_type, $entity);
+    return entity_create($this->entity_type, (array) $entity);
   }
 
   public function save($entity) {
-    $entity = entity_save($this->entity_type, $entity);
+    $entity->save();
 
-    list($id, $vid, $bundle) = entity_extract_ids($this->entity_type, $entity);
+    $id = $entity->getIdentifier();
+
     // Add the created entity to the array so it can be deleted later.
     $this->entities[$id] = $entity;
 
@@ -107,7 +107,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
   }
 
   public function add($entity) {
-    $this->create($entity);
+    $entity = $this->create($entity);
     $this->save($entity);
   }
 
@@ -123,6 +123,14 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
         else {
           throw new \Exception(sprintf("Entity field %s doesn't exist, or hasn't been mapped.", $field));
         }
+      }
+      // Add additional defaults like "type", and map user id to author.
+      if($this->bundle != NULL) {
+        $entity->type = $this->bundle;
+      }
+      if(isset($entity->author)) {
+        $author = user_load_by_name($entity->author);
+        $entity->author = $author->uid;
       }
       $entities[] = $entity;
     }
