@@ -139,4 +139,46 @@ class DKANContext extends RawDrupalContext implements SnippetAcceptingContext {
     }
     return $element;
   }
+
+
+
+  /**
+   * @Then /^I should see the administration menu$/
+   */
+  public function iShouldSeeTheAdministrationMenu() {
+    $xpath = "//div[@id='admin-menu']";
+    // grab the element
+    $element = $this->getXPathElement($xpath);
+  }
+
+  /**
+   * @Then /^I should have an "([^"]*)" text format option$/
+   */
+  public function iShouldHaveAnTextFormatOption($option) {
+    $xpath = "//select[@name='body[und][0][format]']//option[@value='" . $option . "']";
+    // grab the element
+    $element = $this->getXPathElement($xpath);
+  }
+
+  /**
+   * Returns an element from an xpath string
+   * @param  string $xpath
+   *   String representing the xpath
+   * @return object
+   *   A mink html element
+   */
+  protected function getXPathElement($xpath) {
+    // get the mink session
+    $session = $this->getSession();
+    // runs the actual query and returns the element
+    $element = $session->getPage()->find(
+        'xpath',
+        $session->getSelectorsHandler()->selectorToXpath('xpath', $xpath)
+    );
+    // errors must not pass silently
+    if (null === $element) {
+      throw new \InvalidArgumentException(sprintf('Could not evaluate XPath: "%s"', $xpath));
+    }
+    return $element;
+  }
 }
