@@ -30,11 +30,14 @@ class GroupContext extends RawDKANEntityContext {
           ->entityCondition('entity_type', 'og_membership')
           ->propertyCondition('gid', $id, '=')
           ->execute();
-      foreach(reset($result) as $membership){
-        $ids[] = $membership->id;
+      if(!empty($result)) {
+        foreach (reset($result) as $membership) {
+          $ids[] = $membership->id;
+        }
+        _og_orphans_delete($ids);
       }
 
-      _og_orphans_delete($ids);
+
       $entity->delete();
     }
   }
@@ -95,10 +98,33 @@ class GroupContext extends RawDKANEntityContext {
   }
 
   /**
+   * @Given /^I am a "([^"]*)" of the group "([^"]*)"$/
+   */
+  public function iAmAMemberOfTheGroup($role, $group_name) {
+    // Get group
+    $group = $this->getGroupByName($group_name);
+
+    $role = $this->getGroupRoleByName($role);
+
+    if ($account = $this->getCurrentUser()) {
+      og_group('node', $group->getIdentifier(), array(
+          "entity type" => "user",
+          "entity" => $account,
+          "membership type" => OG_MEMBERSHIP_TYPE_DEFAULT,
+      ));
+      og_role_grant('node', $group->getIdentifier(), $account->uid, $role);
+    }
+    else {
+      throw new \InvalidArgumentException(sprintf('Could not find current user'));
+    }
+
+  }
+
+  /**
    * Get Group by name
    *
    * @param $name
-   * @return stdClass group or FALSE
+   * @return EntityMetadataWrapper group or FALSE
    */
   public function getGroupByName($name) {
     foreach($this->entities as $group) {

@@ -130,10 +130,28 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
       }
       if(isset($entity->author)) {
         $author = user_load_by_name($entity->author);
-        $entity->author = $author->uid;
+        $entity->uid = $author->uid;
       }
       $entities[] = $entity;
     }
     return $entities;
+  }
+
+  /**
+   * Check toolbar if this->user isn't working.
+   */
+  public function getCurrentUser() {
+    if ($this->user) {
+      return $this->user;
+    }
+    $session = $this->getSession();
+    $page = $session->getPage();
+    $xpath = $page->find('xpath', "//div[@class='content']/span[@class='links']/a[1]");
+    $userName = $xpath->getText();
+    $uid = db_query('SELECT uid FROM users WHERE name = :user_name', array(':user_name' =>  $userName))->fetchField();
+    if ($uid && $user = user_load($uid)) {
+      return $user;
+    }
+    return FALSE;
   }
 }
