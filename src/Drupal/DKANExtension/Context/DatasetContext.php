@@ -18,8 +18,7 @@ class DatasetContext extends RawDKANEntityContext {
       'title' => 'title',
       'description' => 'body',
       'publisher' => 'og_group_ref',
-      'published' => 'published',
-      'resource format' => 'resource format',
+      'published' => 'status',
       'tags' => 'field_tags',
     ),
       'dataset',
@@ -44,10 +43,18 @@ class DatasetContext extends RawDKANEntityContext {
     $context = $this->groupContext;
     // To-do: add in support for multiple groups
     $groupwrapper = $context->getGroupByName($entity->og_group_ref);
+    $body = $entity->body;
+    $tagterms = taxonomy_get_term_by_name($entity->field_tags);
+    $tagterm = array_values($tagterms)[0];
 
+    unset($entity->body);
     unset($entity->og_group_ref);
+    unset($entity->field_format);
+    unset($entity->field_tags);
     $wrapper = entity_metadata_wrapper('node', $entity, array('bundle' => 'dataset'));
     $wrapper->og_group_ref->set(array($groupwrapper->nid->value()));
+    $wrapper->body->set(array('value' => $body));
+    $wrapper->field_tags->set(array($tagterm->tid));
 
     return $wrapper;
   }
@@ -59,8 +66,10 @@ class DatasetContext extends RawDKANEntityContext {
     parent::addMultipleFromTable($datasetsTable);
     // TO-DO: Should be delegated to an outside search context file for common use
     $index = search_api_index_load("datasets");
+    $group_index = search_api_index_load("groups_di");
     foreach($this->entities as $entity) {
       $index->index(entity_load($this->entity_type, array($entity->getIdentifier())));
+      $group_index->index(entity_load($this->entity_type, array($entity->getIdentifier())));
     }
   }
 

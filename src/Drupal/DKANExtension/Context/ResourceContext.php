@@ -15,7 +15,7 @@ class ResourceContext extends RawDKANEntityContext{
             'title' => 'title',
             'description' => 'body',
             'publisher' => 'og_group_ref',
-            'published' => 'published',
+            'published' => 'status',
             'resource format' => 'field_format',
             'dataset' => 'field_dataset_ref',
         ),

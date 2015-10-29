@@ -15,7 +15,7 @@ class GroupContext extends RawDKANEntityContext {
     parent::__construct(array(
       'author' => 'author',
       'title' => 'title',
-      'published' => 'published'
+      'published' => 'status'
     ),
       'group',
       'node'
@@ -74,7 +74,7 @@ class GroupContext extends RawDKANEntityContext {
         // Add user to group with the proper group permissions and status
         if ($group && $user) {
           // Add the user to the group
-          og_group("node", $group->nid, array(
+          og_group("node", $group->nid->value(), array(
             "entity type" => "user",
             "entity" => $user,
             "membership type" => OG_MEMBERSHIP_TYPE_DEFAULT,
@@ -82,7 +82,7 @@ class GroupContext extends RawDKANEntityContext {
           ));
           // Grant user roles
           $group_role = $this->getGroupRoleByName($groupMembershipHash['role on group']);
-          og_role_grant("node", $group->nid, $user->uid, $group_role);
+          og_role_grant("node", $group->nid->value(), $user->uid, $group_role);
         } else {
           if (!$group) {
             throw new \Exception(sprintf("No group was found with name %s.", $groupMembershipHash['group']));
