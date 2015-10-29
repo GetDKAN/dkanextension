@@ -45,7 +45,13 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    */
   public function deleteAll(AfterScenarioScope $scope) {
     foreach ($this->entities as $entity) {
-      $entity->delete();
+      $entities_to_delete = entity_load($this->entity_type, array($entity->getIdentifier()));
+      if (!empty($entities_to_delete)){
+        foreach ($entities_to_delete as $entity_to_delete) {
+          $entity_to_delete = entity_metadata_wrapper($this->entity_type, $entity_to_delete);
+          entity_delete($this->entity_type, $entity_to_delete->getIdentifier());
+        }
+      }
     }
   }
 
