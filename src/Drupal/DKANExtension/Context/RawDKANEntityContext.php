@@ -45,14 +45,24 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    */
   public function deleteAll(AfterScenarioScope $scope) {
     foreach ($this->entities as $entity) {
+      // In the case that the entity is removed in another teardown,
+      // we want to get a fresh entity instead of relying on the wrapper
+      // (or a bool that confirms it's deleted)
+
       $entities_to_delete = entity_load($this->entity_type, array($entity->getIdentifier()));
+
       if (!empty($entities_to_delete)){
         foreach ($entities_to_delete as $entity_to_delete) {
           $entity_to_delete = entity_metadata_wrapper($this->entity_type, $entity_to_delete);
           entity_delete($this->entity_type, $entity_to_delete->getIdentifier());
         }
       }
+      $entity->clear();
     }
+
+    // For Scenarios with Examples, Context class is not smart enough to reset the array of entities
+    //  so we clear it here to prevent stale entities from previous examples
+    $this->entities = array();
   }
 
   /**
@@ -134,10 +144,12 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
       if($this->bundle != NULL) {
         $entity->type = $this->bundle;
       }
+      // If entity has an author, substitute in their uid
       if(isset($entity->author)) {
         $author = user_load_by_name($entity->author);
         $entity->uid = $author->uid;
       }
+      // Convert the string status from table into a flip bit
       if($this->entity_type === 'node' && isset($entity->status)){
         $entity->status = $entity->status === "Yes" ? 1 : 0;
       }

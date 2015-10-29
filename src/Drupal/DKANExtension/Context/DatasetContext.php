@@ -67,9 +67,13 @@ class DatasetContext extends RawDKANEntityContext {
     // TO-DO: Should be delegated to an outside search context file for common use
     $index = search_api_index_load("datasets");
     $group_index = search_api_index_load("groups_di");
+
     foreach($this->entities as $entity) {
-      $index->index(entity_load($this->entity_type, array($entity->getIdentifier())));
-      $group_index->index(entity_load($this->entity_type, array($entity->getIdentifier())));
+      $entity_to_index = entity_load($this->entity_type, array($entity->getIdentifier()));
+
+      // Need to manually index as site doesn't trigger indexing when creating entity through behat
+      $index->index($entity_to_index);
+      $group_index->index($entity_to_index);
     }
   }
 

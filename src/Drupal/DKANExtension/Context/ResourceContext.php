@@ -29,11 +29,6 @@ class ResourceContext extends RawDKANEntityContext{
      */
     public function addResources(TableNode $resourcesTable){
         parent::addMultipleFromTable($resourcesTable);
-        // TO-DO: Should be delegated to an outside search context file for common use
-        $index = search_api_index_load("datasets");
-        foreach($this->entities as $entity) {
-            $index->index(entity_load($this->entity_type, array($entity->getIdentifier())));
-        }
     }
 
     /**
