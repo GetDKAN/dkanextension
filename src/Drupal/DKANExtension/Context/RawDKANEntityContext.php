@@ -13,7 +13,7 @@ use \stdClass;
  */
 class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingContext {
 
-  // Store pages to be referenced in an array.
+  // Store entities as EntityMetadataWrappers for easy property inspection.
   protected $entities = array();
 
   protected $entity_type;
@@ -95,24 +95,28 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     return entity_create($this->entity_type, (array) $entity);
   }
 
-  public function save($entity) {
-    $entity->save();
+  public function wrap($entity){
+    return entity_metadata_wrapper($this->entity_type, $entity);
+  }
 
-    $id = $entity->getIdentifier();
+  public function save($wrapper) {
+    $wrapper->save();
+
+    $id = $wrapper->getIdentifier();
 
     // Add the created entity to the array so it can be deleted later.
-    $this->entities[$id] = $entity;
+    $this->entities[$id] = $wrapper;
 
-    return $entity;
+    return $wrapper;
   }
 
   public function addPage($entity) {
-    list($path, $url_options) = entity_uri($this->entity_type, $entity);
+    $uri = entity_uri($this->entity_type, $entity);
 
     // Add the url to the page array for easy navigation.
     $this->pageContext->addPage(array(
       'title' => $entity->title,
-      'url' => $path
+      'url' => $uri['path']
     ));
   }
 
@@ -125,7 +129,10 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
 
   public function add($entity) {
     $entity = $this->create($entity);
-    $this->save($entity);
+    $wrapper = $this->wrap($entity);
+    $wrapper = $this->save($wrapper);
+    $entity = reset(entity_load($this->entity_type, array($wrapper->getIdentifier())));
+    $this->addPage($entity);
   }
 
   function entitiesFromTableNode(TableNode $entityTable) {

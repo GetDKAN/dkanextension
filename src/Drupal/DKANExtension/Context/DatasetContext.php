@@ -38,8 +38,7 @@ class DatasetContext extends RawDKANEntityContext {
   /**
    * Override create to substitute in group id
    */
-  public function create($entity){
-    $entity = parent::create($entity);
+  public function wrap($entity){
     $context = $this->groupContext;
     // To-do: add in support for multiple groups
     $groupwrapper = $context->getGroupByName($entity->og_group_ref);

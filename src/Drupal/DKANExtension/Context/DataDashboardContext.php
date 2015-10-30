@@ -21,10 +21,4 @@ class DataDashboardContext extends RawDKANEntityContext{
   public function addDataDashboard(TableNode $dashboardtable){
     parent::addMultipleFromTable($dashboardtable);
   }
-
-  public function create($entity){
-    parent::create($entity);
-    $wrapper = entity_metadata_wrapper('node', $entity, array('bundle' => 'data_dashboard'));
-    return $wrapper;
-  }
 }

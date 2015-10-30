@@ -31,8 +31,7 @@ class DKANDataStoryContext extends RawDKANEntityContext{
         }
     }
 
-    public function create($entity){
-        $entity = parent::create($entity);
+    public function wrap($entity){
 
         $body = $entity->body;
 

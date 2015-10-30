@@ -22,12 +22,6 @@ class GroupContext extends RawDKANEntityContext {
     );
   }
 
-  public function create($entity){
-    $entity = parent::create($entity);
-    $wrapper = entity_metadata_wrapper('node', $entity, array('bundle' => 'group'));
-    return $wrapper;
-  }
-
   /**
    * @Given groups:
    */

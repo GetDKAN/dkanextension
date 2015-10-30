@@ -42,10 +42,9 @@ class ResourceContext extends RawDKANEntityContext{
     }
 
     /**
-     * Override create to substitute in group id
+     *
      */
-    public function create($entity){
-        $entity = parent::create($entity);
+    public function wrap($entity){
 
         $body = $entity->body;
         $group = $this->groupContext->getGroupByName($entity->og_group_ref);
