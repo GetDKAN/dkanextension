@@ -49,7 +49,6 @@ class DatasetContext extends RawDKANEntityContext {
 
     unset($entity->body);
     unset($entity->og_group_ref);
-    unset($entity->field_format);
     unset($entity->field_tags);
     $wrapper = entity_metadata_wrapper('node', $entity, array('bundle' => 'dataset'));
     $wrapper->og_group_ref->set(array($groupwrapper->nid->value()));
@@ -72,6 +71,8 @@ class DatasetContext extends RawDKANEntityContext {
       $entity_to_index = entity_load($this->entity_type, array($entity->getIdentifier()));
 
       // Need to manually index as site doesn't trigger indexing when creating entity through behat
+      // because indexing only normally happens in the drupal php shutdown function, and that never
+      // gets to run because we only bootstrap drupal once.
       $index->index($entity_to_index);
       $group_index->index($entity_to_index);
     }

@@ -45,8 +45,8 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    */
   public function deleteAll(AfterScenarioScope $scope) {
     foreach ($this->entities as $entity) {
-      // In the case that the entity is removed in another teardown,
-      // we want to get a fresh entity instead of relying on the wrapper
+      // The behat user teardown deletes all the content of a user automatically,
+      // so we want to get a fresh entity instead of relying on the wrapper
       // (or a bool that confirms it's deleted)
 
       $entities_to_delete = entity_load($this->entity_type, array($entity->getIdentifier()));
@@ -60,8 +60,9 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
       $entity->clear();
     }
 
-    // For Scenarios with Examples, Context class is not smart enough to reset the array of entities
-    //  so we clear it here to prevent stale entities from previous examples
+    // For Scenarios Outlines, EntityContext is not deleted and recreated
+    // and thus the entities array is not deleted and houses stale entities
+    // from previous examples, so we clear it here
     $this->entities = array();
   }
 

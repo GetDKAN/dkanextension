@@ -22,26 +22,6 @@ class GroupContext extends RawDKANEntityContext {
     );
   }
 
-  //public function deleteAll(AfterScenarioScope $scope){
-//    foreach($this->entities as $entity){
-//      $id = $entity->nid->value();
-//      $query = new EntityFieldQuery();
-//      $result = $query
-//          ->entityCondition('entity_type', 'og_membership')
-//          ->propertyCondition('gid', $id, '=')
-//          ->execute();
-//      if(!empty($result)) {
-//        foreach (reset($result) as $membership) {
-//          $ids[] = $membership->id;
-//        }
-//        _og_orphans_delete($ids);
-//      }
-//
-//
-//      $entity->delete();
-//    }
-  //}
-
   public function create($entity){
     $entity = parent::create($entity);
     $wrapper = entity_metadata_wrapper('node', $entity, array('bundle' => 'group'));
