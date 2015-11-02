@@ -91,14 +91,44 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     return is_array($array) ? $array : array();
   }
 
+  /**
+   *
+   * Helper function to create an entity.
+   *
+   * Takes a array of key-mapped values and creates a fresh entity
+   * using the data provided. The array should correspond to the context's field_map
+   *
+   * @param $entity - the array of values to create an entity from
+   * @return the stdClass entity, or FALSE if failed
+   */
   public function create($entity) {
     return entity_create($this->entity_type, (array) $entity);
   }
 
+  /**
+   *
+   * Helper function to wrap an entity.
+   *
+   * Builds an EntityMetadataWrapper using a provided entity from the
+   * create function. This will be overridden by sub-contexts to re-populate the fields
+   * with more specific metadata, such as multifields.
+   *
+   * @param $entity - the stdClass entity to wrap
+   * @return \EntityMetadataWrapper of the entity
+   */
   public function wrap($entity){
     return entity_metadata_wrapper($this->entity_type, $entity);
   }
 
+  /**
+   * Helper function to save an entity wrapper.
+   *
+   * Expects an EntityMetadataWrapper, calls its respective save function,
+   * and adds the object to the context's entites array, for later usage.
+   *
+   * @param $wrapper - the wrapped entity to save
+   * @return the saved EntityMetadataWrapper
+   */
   public function save($wrapper) {
     $wrapper->save();
 
@@ -110,6 +140,15 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     return $wrapper;
   }
 
+  /**
+   * Adds an entity's page to known pages.
+   *
+   * Takes an entity and acquires it's unique uri, then calls
+   * the addPage routine from PageContext to save it along
+   * with other saved pages.
+   *
+   * @param $entity - the entity to add a page for
+   */
   public function addPage($entity) {
     $uri = entity_uri($this->entity_type, $entity);
 
@@ -121,12 +160,34 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
   }
 
 
+  /**
+   * Creates entities from a given table.
+   *
+   * Builds key-mapped arrays from a TableNode matching this context's field map,
+   * then cycles through each array to start the entity build routine for each
+   * corresponding array. This function will be called by sub-contexts to generate
+   * their entities.
+   *
+   * @param TableNode $entityTable - provided
+   * @throws \Exception
+   */
   public function addMultipleFromTable(TableNode $entityTable) {
     foreach($this->entitiesFromTableNode($entityTable) as $entity) {
       $this->add($entity);
     }
   }
 
+  /**
+   * Build routine for an entity.
+   *
+   * Given an array of key-mapped values, the build routine is as follows:
+   * * 1. Create the entity based off the array given
+   * * 2. Wrap the fresh entity in an EntityMetadataWrapper (and finish any data population)
+   * * 3. Save the wrapped entity.
+   * * 4. Add the uri page for the entity to the array of pages.
+   *
+   * @param $entity - the array of key-mapped values
+   */
   public function add($entity) {
     $entity = $this->create($entity);
     $wrapper = $this->wrap($entity);
@@ -135,6 +196,18 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     $this->addPage($entity);
   }
 
+  /**
+   * Creates an array of key-mapped values.
+   *
+   * Takes an TableNode and builds an multi-dimensional array,
+   * that has the keys as the first array and the mapped values, for each individual
+   * entity, as the remaining arrays. Does some in-place substitutions for shared properties of
+   * entities.
+   *
+   * @param TableNode $entityTable - table containing mapped values for context's entity
+   * @return array of key-mapped values
+   * @throws \Exception
+   */
   function entitiesFromTableNode(TableNode $entityTable) {
     $entities = array();
     foreach ($entityTable as $entityHash) {
