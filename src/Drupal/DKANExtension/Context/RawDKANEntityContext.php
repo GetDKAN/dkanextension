@@ -192,7 +192,8 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     $entity = $this->create($entity);
     $wrapper = $this->wrap($entity);
     $wrapper = $this->save($wrapper);
-    $entity = reset(entity_load($this->entity_type, array($wrapper->getIdentifier())));
+    $entity = entity_load($this->entity_type, array($wrapper->getIdentifier()));
+    $entity = reset($entity);
     $this->addPage($entity);
   }
 
