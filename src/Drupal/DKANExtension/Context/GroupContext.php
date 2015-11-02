@@ -98,12 +98,23 @@ class GroupContext extends RawDKANEntityContext {
    * Get Group by name
    *
    * @param $name
-   * @return EntityMetadataWrapper group or FALSE
+   * @return StdClass group or FALSE
    */
   public function getGroupByName($name) {
     foreach($this->entities as $group) {
       if ($group->title->value() == $name) {
         return $group;
+      }
+    }
+    // In case the group was not created by 'Given groups',
+    //  such as being created manually by form interaction
+    $gids = og_get_all_group("node");
+    foreach($gids as $gid){
+      $groups = entity_load($this->entity_type, array($gid));
+      foreach($groups as $group) {
+        if ($group->title == $name) {
+          return entity_metadata_wrapper('node', $group);
+        }
       }
     }
     return FALSE;
