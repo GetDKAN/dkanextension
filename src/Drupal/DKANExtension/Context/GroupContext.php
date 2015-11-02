@@ -23,6 +23,8 @@ class GroupContext extends RawDKANEntityContext {
   }
 
   /**
+   * Creates OG Groups from a table.
+   *
    * @Given groups:
    */
   public function addGroups(TableNode $groupsTable) {
@@ -72,6 +74,8 @@ class GroupContext extends RawDKANEntityContext {
   }
 
   /**
+   * Grants the given role to the current user, for the given group.
+   *
    * @Given /^I am a "([^"]*)" of the group "([^"]*)"$/
    */
   public function iAmAMemberOfTheGroup($role, $group_name) {
@@ -97,8 +101,11 @@ class GroupContext extends RawDKANEntityContext {
   /**
    * Get Group by name
    *
-   * @param $name
-   * @return StdClass group or FALSE
+   * First looks inside this context's array of wrapped entities,
+   * and if not found checks the site's database.
+   *
+   * @param $name - title of the group
+   * @return EntityMetadataWrapper group or FALSE
    */
   public function getGroupByName($name) {
     foreach($this->entities as $group) {
@@ -107,7 +114,8 @@ class GroupContext extends RawDKANEntityContext {
       }
     }
     // In case the group was not created by 'Given groups',
-    //  such as being created manually by form interaction
+    //  such as being created manually by form interaction,
+    //  we fetch the group using entity_load
     $gids = og_get_all_group("node");
     foreach($gids as $gid){
       $groups = entity_load($this->entity_type, array($gid));
@@ -122,7 +130,7 @@ class GroupContext extends RawDKANEntityContext {
   /**
    * Get Group Role ID by name
    *
-   * @param $name
+   * @param $name - title of the role
    * @return stdClass Role ID or FALSE
    */
   private function getGroupRoleByName($name) {
@@ -132,8 +140,8 @@ class GroupContext extends RawDKANEntityContext {
   /**
    * Get Membership Status Code by name
    *
-   * @param $name
-   * @return stdClass Membership status code or FALSE
+   * @param $name - name of the mapped status
+   * @return group Membership constant status code or FALSE
    */
   private function getMembershipStatusByName($name) {
     switch($name) {

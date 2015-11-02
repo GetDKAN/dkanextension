@@ -4,6 +4,9 @@ namespace Drupal\DKANExtension\Context;
 
 use Behat\Gherkin\Node\TableNode;
 
+/**
+ * Defines application features from the specific context.
+ */
 class DataDashboardContext extends RawDKANEntityContext{
 
   public function __construct(){

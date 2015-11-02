@@ -36,7 +36,10 @@ class DatasetContext extends RawDKANEntityContext {
   }
 
   /**
-   * Override create to substitute in group id
+   * Sets the multi-fields for body, tags, and reference to this dataset's group.
+   *
+   * @param $entity - the stdClass entity to wrap
+   * @return \EntityMetadataWrapper of the entity
    */
   public function wrap($entity){
     $context = $this->groupContext;
@@ -58,6 +61,8 @@ class DatasetContext extends RawDKANEntityContext {
   }
 
   /**
+   * Creates datasets from a table.
+   *
    * @Given datasets:
    */
   public function addDatasets(TableNode $datasetsTable) {
@@ -78,6 +83,8 @@ class DatasetContext extends RawDKANEntityContext {
   }
 
   /**
+   * Looks for a dataset in the dataset view with the given name on the current page.
+   *
    * @Then I should see a dataset called :text
    *
    * @throws \Exception
@@ -102,6 +109,8 @@ class DatasetContext extends RawDKANEntityContext {
   }
 
   /**
+   * Updates the index for datasets.
+   *
    * @Then the Dataset search updates behind the scenes
    */
   public function theDatasetSearchUpdatesBehindTheScenes()
@@ -114,8 +123,8 @@ class DatasetContext extends RawDKANEntityContext {
   /**
    * Get Dataset by name
    *
-   * @param $name
-   * @return stdClass dataset or FALSE
+   * @param $name - title of dataset
+   * @return EntityMetadataWrapper dataset or FALSE
    */
   public function getDatasetByName($name){
     foreach($this->entities as $dataset) {

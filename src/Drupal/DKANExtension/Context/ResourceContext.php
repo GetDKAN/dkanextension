@@ -7,6 +7,9 @@ use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Gherkin\Node\TableNode;
 
+/**
+ * Defines application features from the specific context.
+ */
 class ResourceContext extends RawDKANEntityContext{
 
     public function __construct(){
@@ -25,6 +28,8 @@ class ResourceContext extends RawDKANEntityContext{
     }
 
     /**
+     * Creates resources from a table.
+     *
      * @Given resources:
      */
     public function addResources(TableNode $resourcesTable){
@@ -42,7 +47,11 @@ class ResourceContext extends RawDKANEntityContext{
     }
 
     /**
+     *  Sets the multi-fields for body, resource format, and the references to this resource's
+     *   dataset and group.
      *
+     * @param $entity - the stdClass entity to wrap
+     * @return \EntityMetadataWrapper of the entity
      */
     public function wrap($entity){
 
