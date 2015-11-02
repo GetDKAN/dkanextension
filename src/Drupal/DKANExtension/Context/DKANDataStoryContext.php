@@ -4,6 +4,9 @@ namespace Drupal\DKANExtension\Context;
 
 use Behat\Gherkin\Node\TableNode;
 
+/**
+ * Defines application features from the specific context.
+ */
 class DKANDataStoryContext extends RawDKANEntityContext{
 
     public function __construct(){
@@ -20,6 +23,8 @@ class DKANDataStoryContext extends RawDKANEntityContext{
     }
 
     /**
+     * Creates data stories from table.
+     *
      * @Given data stories:
      */
     public function addDataStories(TableNode $datastoriestable){
@@ -31,8 +36,13 @@ class DKANDataStoryContext extends RawDKANEntityContext{
         }
     }
 
-    public function create($entity){
-        $entity = parent::create($entity);
+    /**
+     * Sets the multi fields for body and tags.
+     *
+     * @param $entity - the stdClass entity to wrap
+     * @return \EntityMetadataWrapper of the entity
+     */
+    public function wrap($entity){
 
         $body = $entity->body;
 

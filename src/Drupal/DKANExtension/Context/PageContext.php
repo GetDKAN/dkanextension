@@ -4,11 +4,12 @@ namespace Drupal\DKANExtension\Context;
 use Behat\Behat\Context\Context as Context;
 use Behat\Mink\Exception\UnsupportedDriverActionException as UnsupportedDriverActionException;
 use Behat\Gherkin\Node\TableNode;
+use Drupal\DrupalExtension\Context\RawDrupalContext;
 
 /**
  * Defines application features from the specific context.
  */
-class PageContext implements Context {
+class PageContext extends RawDrupalContext {
 
   // Store pages to be referenced in an array.
   protected $pages = array();

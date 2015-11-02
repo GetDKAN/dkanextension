@@ -7,6 +7,9 @@ use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Gherkin\Node\TableNode;
 
+/**
+ * Defines application features from the specific context.
+ */
 class ResourceContext extends RawDKANEntityContext{
 
     public function __construct(){
@@ -15,7 +18,7 @@ class ResourceContext extends RawDKANEntityContext{
             'title' => 'title',
             'description' => 'body',
             'publisher' => 'og_group_ref',
-            'published' => 'published',
+            'published' => 'status',
             'resource format' => 'field_format',
             'dataset' => 'field_dataset_ref',
         ),
@@ -25,15 +28,12 @@ class ResourceContext extends RawDKANEntityContext{
     }
 
     /**
+     * Creates resources from a table.
+     *
      * @Given resources:
      */
     public function addResources(TableNode $resourcesTable){
         parent::addMultipleFromTable($resourcesTable);
-        // TO-DO: Should be delegated to an outside search context file for common use
-        $index = search_api_index_load("datasets");
-        foreach($this->entities as $entity) {
-            $index->index(entity_load($this->entity_type, array($entity->getIdentifier())));
-        }
     }
 
     /**
@@ -47,10 +47,13 @@ class ResourceContext extends RawDKANEntityContext{
     }
 
     /**
-     * Override create to substitute in group id
+     *  Sets the multi-fields for body, resource format, and the references to this resource's
+     *   dataset and group.
+     *
+     * @param $entity - the stdClass entity to wrap
+     * @return \EntityMetadataWrapper of the entity
      */
-    public function create($entity){
-        $entity = parent::create($entity);
+    public function wrap($entity){
 
         $body = $entity->body;
         $group = $this->groupContext->getGroupByName($entity->og_group_ref);

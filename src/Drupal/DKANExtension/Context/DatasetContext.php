@@ -18,8 +18,7 @@ class DatasetContext extends RawDKANEntityContext {
       'title' => 'title',
       'description' => 'body',
       'publisher' => 'og_group_ref',
-      'published' => 'published',
-      'resource format' => 'resource format',
+      'published' => 'status',
       'tags' => 'field_tags',
     ),
       'dataset',
@@ -37,34 +36,55 @@ class DatasetContext extends RawDKANEntityContext {
   }
 
   /**
-   * Override create to substitute in group id
+   * Sets the multi-fields for body, tags, and reference to this dataset's group.
+   *
+   * @param $entity - the stdClass entity to wrap
+   * @return \EntityMetadataWrapper of the entity
    */
-  public function create($entity){
-    $entity = parent::create($entity);
+  public function wrap($entity){
     $context = $this->groupContext;
     // To-do: add in support for multiple groups
     $groupwrapper = $context->getGroupByName($entity->og_group_ref);
+    $body = $entity->body;
+    $tagterms = taxonomy_get_term_by_name($entity->field_tags);
+    $tagterm = array_values($tagterms)[0];
 
+    unset($entity->body);
     unset($entity->og_group_ref);
+    unset($entity->field_tags);
     $wrapper = entity_metadata_wrapper('node', $entity, array('bundle' => 'dataset'));
     $wrapper->og_group_ref->set(array($groupwrapper->nid->value()));
+    $wrapper->body->set(array('value' => $body));
+    $wrapper->field_tags->set(array($tagterm->tid));
 
     return $wrapper;
   }
 
   /**
+   * Creates datasets from a table.
+   *
    * @Given datasets:
    */
   public function addDatasets(TableNode $datasetsTable) {
     parent::addMultipleFromTable($datasetsTable);
     // TO-DO: Should be delegated to an outside search context file for common use
     $index = search_api_index_load("datasets");
+    $group_index = search_api_index_load("groups_di");
+
     foreach($this->entities as $entity) {
-      $index->index(entity_load($this->entity_type, array($entity->getIdentifier())));
+      $entity_to_index = entity_load($this->entity_type, array($entity->getIdentifier()));
+
+      // Need to manually index as site doesn't trigger indexing when creating entity through behat
+      // because indexing only normally happens in the drupal php shutdown function, and that never
+      // gets to run because we only bootstrap drupal once.
+      $index->index($entity_to_index);
+      $group_index->index($entity_to_index);
     }
   }
 
   /**
+   * Looks for a dataset in the dataset view with the given name on the current page.
+   *
    * @Then I should see a dataset called :text
    *
    * @throws \Exception
@@ -89,10 +109,22 @@ class DatasetContext extends RawDKANEntityContext {
   }
 
   /**
+   * Updates the index for datasets.
+   *
+   * @Then the Dataset search updates behind the scenes
+   */
+  public function theDatasetSearchUpdatesBehindTheScenes()
+  {
+    $index = search_api_index_load('datasets');
+    $items =  search_api_get_items_to_index($index);
+    search_api_index_specific_items($index, $items);
+  }
+
+  /**
    * Get Dataset by name
    *
-   * @param $name
-   * @return stdClass dataset or FALSE
+   * @param $name - title of dataset
+   * @return EntityMetadataWrapper dataset or FALSE
    */
   public function getDatasetByName($name){
     foreach($this->entities as $dataset) {

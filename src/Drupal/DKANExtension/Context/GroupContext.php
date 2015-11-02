@@ -15,40 +15,16 @@ class GroupContext extends RawDKANEntityContext {
     parent::__construct(array(
       'author' => 'author',
       'title' => 'title',
-      'published' => 'published'
+      'published' => 'status'
     ),
       'group',
       'node'
     );
   }
 
-  public function deleteAll(AfterScenarioScope $scope){
-    foreach($this->entities as $entity){
-      $id = $entity->nid->value();
-      $query = new EntityFieldQuery();
-      $result = $query
-          ->entityCondition('entity_type', 'og_membership')
-          ->propertyCondition('gid', $id, '=')
-          ->execute();
-      if(!empty($result)) {
-        foreach (reset($result) as $membership) {
-          $ids[] = $membership->id;
-        }
-        _og_orphans_delete($ids);
-      }
-
-
-      $entity->delete();
-    }
-  }
-
-  public function create($entity){
-    $entity = parent::create($entity);
-    $wrapper = entity_metadata_wrapper('node', $entity, array('bundle' => 'group'));
-    return $wrapper;
-  }
-
   /**
+   * Creates OG Groups from a table.
+   *
    * @Given groups:
    */
   public function addGroups(TableNode $groupsTable) {
@@ -74,7 +50,7 @@ class GroupContext extends RawDKANEntityContext {
         // Add user to group with the proper group permissions and status
         if ($group && $user) {
           // Add the user to the group
-          og_group("node", $group->nid, array(
+          og_group("node", $group->nid->value(), array(
             "entity type" => "user",
             "entity" => $user,
             "membership type" => OG_MEMBERSHIP_TYPE_DEFAULT,
@@ -82,7 +58,7 @@ class GroupContext extends RawDKANEntityContext {
           ));
           // Grant user roles
           $group_role = $this->getGroupRoleByName($groupMembershipHash['role on group']);
-          og_role_grant("node", $group->nid, $user->uid, $group_role);
+          og_role_grant("node", $group->nid->value(), $user->uid, $group_role);
         } else {
           if (!$group) {
             throw new \Exception(sprintf("No group was found with name %s.", $groupMembershipHash['group']));
@@ -98,6 +74,8 @@ class GroupContext extends RawDKANEntityContext {
   }
 
   /**
+   * Grants the given role to the current user, for the given group.
+   *
    * @Given /^I am a "([^"]*)" of the group "([^"]*)"$/
    */
   public function iAmAMemberOfTheGroup($role, $group_name) {
@@ -123,7 +101,10 @@ class GroupContext extends RawDKANEntityContext {
   /**
    * Get Group by name
    *
-   * @param $name
+   * First looks inside this context's array of wrapped entities,
+   * and if not found checks the site's database.
+   *
+   * @param $name - title of the group
    * @return EntityMetadataWrapper group or FALSE
    */
   public function getGroupByName($name) {
@@ -132,12 +113,24 @@ class GroupContext extends RawDKANEntityContext {
         return $group;
       }
     }
+    // In case the group was not created by 'Given groups',
+    //  such as being created manually by form interaction,
+    //  we fetch the group using entity_load
+    $gids = og_get_all_group("node");
+    foreach($gids as $gid){
+      $groups = entity_load($this->entity_type, array($gid));
+      foreach($groups as $group) {
+        if ($group->title == $name) {
+          return entity_metadata_wrapper('node', $group);
+        }
+      }
+    }
     return FALSE;
   }
   /**
    * Get Group Role ID by name
    *
-   * @param $name
+   * @param $name - title of the role
    * @return stdClass Role ID or FALSE
    */
   private function getGroupRoleByName($name) {
@@ -147,8 +140,8 @@ class GroupContext extends RawDKANEntityContext {
   /**
    * Get Membership Status Code by name
    *
-   * @param $name
-   * @return stdClass Membership status code or FALSE
+   * @param $name - name of the mapped status
+   * @return group Membership constant status code or FALSE
    */
   private function getMembershipStatusByName($name) {
     switch($name) {
