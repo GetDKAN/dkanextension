@@ -15,10 +15,6 @@ use \stdClass;
  */
 class DKANContext extends RawDrupalContext implements SnippetAcceptingContext {
 
-  // Store pages to be referenced in an array.
-  protected $pages = array();
-  protected $groups = array();
-
   /**
    * Initializes context.
    *
@@ -29,32 +25,6 @@ class DKANContext extends RawDrupalContext implements SnippetAcceptingContext {
   public function __construct() {
     // Set the default timezone to NY
     date_default_timezone_set('America/New_York');
-  }
-
-  /**
-   * @BeforeScenario @mail
-   */
-  public function beforeMail()
-  {
-    // Store the original system to restore after the scenario.
-    echo("Setting Testing Mail System\n");
-    $this->originalMailSystem = variable_get('mail_system', array('default-system' => 'DefaultMailSystem'));
-    // Set the test system.
-    variable_set('mail_system', array('default-system' => 'TestingMailSystem'));
-    // Flush the email buffer.
-    variable_set('drupal_test_email_collector', array());
-  }
-
-  /**
-   * @AfterScenario @mail
-   */
-  public function afterMail()
-  {
-    echo("Restoring Mail System\n");
-    // Restore the default system.
-    variable_set('mail_system', $this->originalMailSystem);
-    // Flush the email buffer.
-    variable_set('drupal_test_email_collector', array());
   }
 
   /****************************
