@@ -67,19 +67,6 @@ class DatasetContext extends RawDKANEntityContext {
    */
   public function addDatasets(TableNode $datasetsTable) {
     parent::addMultipleFromTable($datasetsTable);
-    // TO-DO: Should be delegated to an outside search context file for common use
-    $index = search_api_index_load("datasets");
-    $group_index = search_api_index_load("groups_di");
-
-    foreach($this->entities as $entity) {
-      $entity_to_index = entity_load($this->entity_type, array($entity->getIdentifier()));
-
-      // Need to manually index as site doesn't trigger indexing when creating entity through behat
-      // because indexing only normally happens in the drupal php shutdown function, and that never
-      // gets to run because we only bootstrap drupal once.
-      $index->index($entity_to_index);
-      $group_index->index($entity_to_index);
-    }
   }
 
   /**
@@ -108,17 +95,6 @@ class DatasetContext extends RawDKANEntityContext {
     }
   }
 
-  /**
-   * Updates the index for datasets.
-   *
-   * @Then the Dataset search updates behind the scenes
-   */
-  public function theDatasetSearchUpdatesBehindTheScenes()
-  {
-    $index = search_api_index_load('datasets');
-    $items =  search_api_get_items_to_index($index);
-    search_api_index_specific_items($index, $items);
-  }
 
   /**
    * Get Dataset by name

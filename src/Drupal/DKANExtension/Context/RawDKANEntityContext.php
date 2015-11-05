@@ -24,6 +24,10 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    * @var \Drupal\DKANExtension\Context\PageContext
    */
   protected $pageContext;
+  /**
+   * @var \Drupal\DKANExtension\Context\SearchAPIContext
+   */
+  protected $searchContext;
 
 
   public function __construct($field_map, $bundle, $entity_type = 'node') {
@@ -38,6 +42,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
   public function gatherContexts(BeforeScenarioScope $scope) {
     $environment = $scope->getEnvironment();
     $this->pageContext = $environment->getContext('Drupal\DKANExtension\Context\PageContext');
+    $this->searchContext = $environment->getContext('Drupal\DKANExtension\Context\SearchAPIContext');
   }
 
   /**
@@ -64,6 +69,9 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     // and thus the entities array is not deleted and houses stale entities
     // from previous examples, so we clear it here
     $this->entities = array();
+
+    // Make sure that we process any index items if they were deleted.
+    $this->searchContext->process();
   }
 
   /**
@@ -195,6 +203,8 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     $entity = entity_load($this->entity_type, array($wrapper->getIdentifier()));
     $entity = reset($entity);
     $this->addPage($entity);
+    // Make sure that we process any search indexed items.
+    $this->searchContext->process();
   }
 
   /**

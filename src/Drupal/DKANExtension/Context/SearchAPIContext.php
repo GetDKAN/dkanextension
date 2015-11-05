@@ -122,7 +122,7 @@ class SearchAPIContext extends RawDrupalContext implements SnippetAcceptingConte
       if (!empty($result)) {
         $found = true;
       }
-     
+
     }
     if (!$found) {
       throw new \Exception("$text not found in $count search results.");

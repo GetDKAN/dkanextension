@@ -29,11 +29,6 @@ class DKANDataStoryContext extends RawDKANEntityContext{
      */
     public function addDataStories(TableNode $datastoriestable){
         parent::addMultipleFromTable($datastoriestable);
-
-        $index = search_api_index_load("stories_index");
-        foreach($this->entities as $entity) {
-            $index->index(entity_load($this->entity_type, array($entity->getIdentifier())));
-        }
     }
 
     /**
