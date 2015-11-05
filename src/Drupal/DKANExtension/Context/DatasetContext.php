@@ -44,7 +44,12 @@ class DatasetContext extends RawDKANEntityContext {
   public function wrap($entity){
     $context = $this->groupContext;
     // To-do: add in support for multiple groups
-    $groupwrapper = $context->getGroupByName($entity->og_group_ref);
+    if (isset($entity->og_group_ref)) {
+      $groupwrapper = $context->getGroupByName($entity->og_group_ref);
+      unset($entity->og_group_ref);
+
+    }
+
     $body = $entity->body;
     $tagterms = taxonomy_get_term_by_name($entity->field_tags);
     $tagterm = array_values($tagterms)[0];

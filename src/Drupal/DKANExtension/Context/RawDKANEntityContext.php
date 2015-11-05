@@ -7,6 +7,7 @@ use Behat\Gherkin\Node\TableNode;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use \stdClass;
+use Symfony\Component\Config\Definition\Exception\Exception;
 
 /**
  * Defines application features from the specific context.
@@ -16,9 +17,11 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
   // Store entities as EntityMetadataWrappers for easy property inspection.
   protected $entities = array();
 
-  protected $entity_type;
-  protected $bundle;
-  protected $field_map;
+  protected $entity_type = '';
+  protected $bundle = '';
+  protected $bundle_key = FALSE;
+  protected $field_map = array();
+  protected $field_properties = array();
 
   /**
    * @var \Drupal\DKANExtension\Context\PageContext
@@ -30,10 +33,41 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
   protected $searchContext;
 
 
-  public function __construct($field_map, $bundle, $entity_type = 'node') {
-    $this->field_map = $field_map;
-    $this->bundle = $bundle;
+  public function __construct($field_map_overrides = array(), $bundle = '', $entity_type = 'node') {
+    $entity_info = entity_get_info($entity_type);
     $this->entity_type = $entity_type;
+
+    // Check that the bundle specified actually exists, or if none given,
+    // that this is an entity with no bundles (single bundle w/ name of entity)
+    $entity_bundles = array_keys($entity_info['bundles']);
+    if (!in_array($bundle, $entity_bundles) && !in_array($this->entity_type, $entity_bundles)) {
+      throw new \Exception("Bundle $bundle doesn't exist for entity type $this->entity_type.");
+    }
+    // Handle entities without bundles and identify the bundle key name (i.e. 'type')
+    if ($bundle == '' && in_array($this->entity_type, $entity_info['bundles'])) {
+      $this->bundle = $this->entity_type;
+      $this->bundle_key = FALSE;
+    }
+    else {
+      $this->bundle = $bundle;
+      $this->bundle_key = $entity_info['entity_keys']['bundle'];
+    }
+
+    // Store the field properties for later.
+    $property_info = entity_get_property_info($this->entity_type);
+    $this->field_properties = $property_info[$this->bundle];
+
+    // Collect the default and overridden field mappings.
+    foreach ($this->field_properties as $field => $info) {
+      // First check if this field mapping is overridden.
+      if ($label = array_search($field, $field_map_overrides)) {
+        $this->field_map[$label] = $field;
+      }
+      // Use the default label from field_properties;
+      else {
+        $this->field_map[$info['label']] = $field;
+      }
+    }
   }
 
   /**
@@ -101,7 +135,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
 
   /**
    *
-   * Helper function to create an entity.
+   * Helper function to create an entity as an EntityMetadataWrapper.
    *
    * Takes a array of key-mapped values and creates a fresh entity
    * using the data provided. The array should correspond to the context's field_map
@@ -110,6 +144,106 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    * @return the stdClass entity, or FALSE if failed
    */
   public function create($entity) {
+    $entity = array();
+    if ($this->bundle_key) {
+      $entity[$this->bundle_key] = $this->bundle;
+    }
+    $entity = entity_create($this->entity_type, $entity);
+    $wrapper = entity_metadata_wrapper($this->entity_type, $entity);
+
+    return $wrapper;
+  }
+
+
+  public function set_field($wrapper, $label, $value) {
+
+    // Make sure there is a mapping to an actual property.
+    if (!isset($this->field_map[$label])) {
+      throw new \Exeception("There is no field mapped to label '$label''.");
+    }
+    $property = $this->field_map[$label];
+
+    $field_type = $this->field_properties[$this->field_map["label"]]['type'];
+
+    switch ($field_type) {
+      // Can be NID
+      case 'integer':
+        break;
+
+      // Do our best to handle 0, false, "false", or "No"
+      case 'boolean':
+        if (gettype($value) == 'string') {
+          $value = strtolower($value);
+          $value = ($value == 'yes') ? true : $value;
+          $value = ($value == 'no') ? false : $value;
+        }
+        $wrapper->$property = (bool) $value;
+        break;
+
+      // Dates - handle strings as best we can. See http://php.net/manual/en/datetime.formats.relative.php
+      case 'date':
+        $date = date_create($value);
+        if ($date === false) {
+          throw new \Exception("Couldn't create a date with '$value'");
+        }
+        break;
+
+      // User reference
+      case 'user':
+        $user = user_load_by_name($value);
+        if ($user === false) {
+          throw new \Exception("Can't find a user with username '$value'");
+        }
+        $wrapper->$property = $user;
+        break;
+
+      // Text field formatting?
+      case 'token':
+        break;
+
+      // Node reference.
+      case 'node':
+        break;
+
+      // Simple text field.
+      case 'text':
+        break;
+
+      // Formatted text like body
+      case 'text_formatted':
+        break;
+
+      // Not sure (something more complex)
+      case 'struct':
+        break;
+
+      // Images
+      case 'field_item_image':
+        break;
+
+      // Links
+      case 'field_item_link':
+        break;
+
+      // References to nodes
+      case 'list<node>':
+        break;
+    }
+    // If entity has an author, substitute in their uid
+    if(isset($entity->author)) {
+      $author = user_load_by_name($entity->author);
+      $entity->uid = $author->uid;
+    }
+    else {
+      // if not, then just assign it to user 1.
+      $entity->uid = 1;
+    }
+    // Convert the string status from table into a flip bit
+    if($this->entity_type === 'node' && isset($entity->status)){
+      $entity->status = $entity->status === "Yes" ? 1 : 0;
+    }
+
+
     return entity_create($this->entity_type, (array) $entity);
   }
 
@@ -180,7 +314,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    * @throws \Exception
    */
   public function addMultipleFromTable(TableNode $entityTable) {
-    foreach($this->entitiesFromTableNode($entityTable) as $entity) {
+    foreach($this->arrayFromTableNode($entityTable) as $entity) {
       $this->add($entity);
     }
   }
@@ -208,46 +342,20 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
   }
 
   /**
-   * Creates an array of key-mapped values.
+   * Converts a TableNode into an array.
    *
-   * Takes an TableNode and builds an multi-dimensional array,
-   * that has the keys as the first array and the mapped values, for each individual
-   * entity, as the remaining arrays. Does some in-place substitutions for shared properties of
-   * entities.
+   * Takes an TableNode and builds a multi-dimensional array,
    *
-   * @param TableNode $entityTable - table containing mapped values for context's entity
-   * @return array of key-mapped values
+   * @param TableNode
    * @throws \Exception
+   * @returns array()
    */
-  function entitiesFromTableNode(TableNode $entityTable) {
-    $entities = array();
-    foreach ($entityTable as $entityHash) {
-      $entity = new stdClass;
-      foreach ($entityHash as $field => $value) {
-        if (isset($this->field_map[$field])) {
-          $drupal_field = $this->field_map[$field];
-          $entity->$drupal_field = $value;
-        }
-        else {
-          throw new \Exception(sprintf("Entity field %s doesn't exist, or hasn't been mapped.", $field));
-        }
-      }
-      // Add additional defaults like "type", and map user id to author.
-      if($this->bundle != NULL) {
-        $entity->type = $this->bundle;
-      }
-      // If entity has an author, substitute in their uid
-      if(isset($entity->author)) {
-        $author = user_load_by_name($entity->author);
-        $entity->uid = $author->uid;
-      }
-      // Convert the string status from table into a flip bit
-      if($this->entity_type === 'node' && isset($entity->status)){
-        $entity->status = $entity->status === "Yes" ? 1 : 0;
-      }
-      $entities[] = $entity;
+  function arrayFromTableNode(TableNode $itemsTable) {
+    $items = array();
+    foreach ($itemsTable as $itemHash) {
+      $items[] = $itemHash;
     }
-    return $entities;
+    return $items;
   }
 
   /**
