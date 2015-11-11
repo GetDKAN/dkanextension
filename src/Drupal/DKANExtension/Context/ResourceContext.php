@@ -28,6 +28,11 @@ class ResourceContext extends RawDKANEntityContext{
      */
     public function addResources(TableNode $resourcesTable){
         parent::addMultipleFromTable($resourcesTable);
+        foreach($this->entities as $wrapper){
+            $entity = entity_load($this->entity_type, array($wrapper->getIdentifier()));
+            $entity = reset($entity);
+            $this->datastoreContext->addDatastore($entity);
+        }
     }
 
     /**
@@ -38,6 +43,7 @@ class ResourceContext extends RawDKANEntityContext{
         $environment = $scope->getEnvironment();
         $this->groupContext = $environment->getContext('Drupal\DKANExtension\Context\GroupContext');
         $this->datasetContext = $environment->getContext('Drupal\DKANExtension\Context\DatasetContext');
+        $this->datastoreContext = $environment->getContext('Drupal\DKANExtension\Context\DKANDatastoreContext');
     }
 
     /**
