@@ -6,8 +6,7 @@ use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\Gherkin\Node\TableNode;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
-use \stdClass;
-use Symfony\Component\Config\Definition\Exception\Exception;
+
 
 /**
  * Defines application features from the specific context.
@@ -50,12 +49,15 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     }
     else {
       $this->bundle = $bundle;
-      $this->bundle_key = $entity_info['entity_keys']['bundle'];
+      $this->bundle_key = $entity_info['entity keys']['bundle'];
     }
 
     // Store the field properties for later.
     $property_info = entity_get_property_info($this->entity_type);
-    $this->field_properties = $property_info[$this->bundle];
+    // Store the fields for this bundle.
+    $this->field_properties = $property_info['bundles'][$this->bundle]['properties'];
+    // Store the properties shared by all entities of this type.
+    $this->field_properties +=  $property_info['properties'];
 
     // Collect the default and overridden field mappings.
     foreach ($this->field_properties as $field => $info) {
@@ -65,7 +67,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
       }
       // Use the default label from field_properties;
       else {
-        $this->field_map[$info['label']] = $field;
+        $this->field_map[strtolower($info['label'])] = $field;
       }
     }
   }
@@ -83,12 +85,12 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    * @AfterScenario
    */
   public function deleteAll(AfterScenarioScope $scope) {
-    foreach ($this->entities as $entity) {
+    foreach ($this->entities as $wrapper) {
       // The behat user teardown deletes all the content of a user automatically,
       // so we want to get a fresh entity instead of relying on the wrapper
       // (or a bool that confirms it's deleted)
 
-      $entities_to_delete = entity_load($this->entity_type, array($entity->getIdentifier()));
+      $entities_to_delete = entity_load($this->entity_type, array($wrapper->getIdentifier()));
 
       if (!empty($entities_to_delete)){
         foreach ($entities_to_delete as $entity_to_delete) {
@@ -96,7 +98,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
           entity_delete($this->entity_type, $entity_to_delete->getIdentifier());
         }
       }
-      $entity->clear();
+      $wrapper->clear();
     }
 
     // For Scenarios Outlines, EntityContext is not deleted and recreated
@@ -143,7 +145,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    * @param $entity - the array of values to create an entity from
    * @return the stdClass entity, or FALSE if failed
    */
-  public function create($entity) {
+  public function new_wrapper() {
     $entity = array();
     if ($this->bundle_key) {
       $entity[$this->bundle_key] = $this->bundle;
@@ -154,16 +156,35 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     return $wrapper;
   }
 
+  /**
+   * @param $wrapper
+   * @param $field
+   * @return mixed
+   * @throws \Exception
+   */
+  public function apply_fields($wrapper, $field) {
+    foreach ($field as $label => $value ) {
+      $this->set_field($wrapper, $label, $value);
+    }
+    return $wrapper;
+  }
 
   public function set_field($wrapper, $label, $value) {
 
     // Make sure there is a mapping to an actual property.
     if (!isset($this->field_map[$label])) {
-      throw new \Exeception("There is no field mapped to label '$label''.");
+      $all_fields = implode(", \n", array_keys($this->field_map));
+      throw new \Exception("There is no field mapped to label '$label''. Available fields are: $all_fields");
     }
     $property = $this->field_map[$label];
 
-    $field_type = $this->field_properties[$this->field_map["label"]]['type'];
+    // If no type is set for this property, then try to just output as-is.
+    if (!isset($this->field_properties[$property]['type'])) {
+      $wrapper->$property = $value;
+      return;
+    }
+
+    $field_type = $this->field_properties[$property]['type'];
 
     switch ($field_type) {
       // Can be NID
@@ -197,110 +218,52 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
         $wrapper->$property = $user;
         break;
 
-      // Text field formatting?
-      case 'token':
+      // Simple text field.
+      case 'text':
+      // Formatted text like body
+      case 'text_formatted':
+        // For now just apply directly.
+        $wrapper->$property = $value;
         break;
+
+      case 'list<taxonomy_term>':
+        // Convert the tags to tids.
+        $tids = array();
+        foreach ($this->explode_list($value) as $term) {
+          $info = field_info_field($property);
+          $vocab_machine_name = $info['settings']['allowed_values'][0]['vocabulary'];
+          if ($found_terms = taxonomy_get_term_by_name($term, $vocab_machine_name)) {
+            $found_term = reset($found_terms);
+              $tids[] = $found_term->tid;
+          }
+          else {
+            throw new \Exception("Term '$term'' not found in vocabulary '$vocab_machine_name'' for field '$property'");
+          }
+        }
+        $wrapper->$property->set($tids);
+        break;
+
+      /* TODO BELOW */
 
       // Node reference.
       case 'node':
         break;
-
-      // Simple text field.
-      case 'text':
-        break;
-
-      // Formatted text like body
-      case 'text_formatted':
-        break;
-
       // Not sure (something more complex)
       case 'struct':
-        break;
-
       // Images
       case 'field_item_image':
-        break;
-
       // Links
       case 'field_item_link':
-        break;
-
+      // Text field formatting?
+      case 'token':
       // References to nodes
       case 'list<node>':
+      default:
+        // For now, just error out as we can't handle it yet.
+        throw new \Exception("Not sure how to handle field '$label' with type '$field_type'");
         break;
     }
-    // If entity has an author, substitute in their uid
-    if(isset($entity->author)) {
-      $author = user_load_by_name($entity->author);
-      $entity->uid = $author->uid;
-    }
-    else {
-      // if not, then just assign it to user 1.
-      $entity->uid = 1;
-    }
-    // Convert the string status from table into a flip bit
-    if($this->entity_type === 'node' && isset($entity->status)){
-      $entity->status = $entity->status === "Yes" ? 1 : 0;
-    }
-
-
-    return entity_create($this->entity_type, (array) $entity);
   }
-
-  /**
-   *
-   * Helper function to wrap an entity.
-   *
-   * Builds an EntityMetadataWrapper using a provided entity from the
-   * create function. This will be overridden by sub-contexts to re-populate the fields
-   * with more specific metadata, such as multifields.
-   *
-   * @param $entity - the stdClass entity to wrap
-   * @return \EntityMetadataWrapper of the entity
-   */
-  public function wrap($entity){
-    return entity_metadata_wrapper($this->entity_type, $entity);
-  }
-
-  /**
-   * Helper function to save an entity wrapper.
-   *
-   * Expects an EntityMetadataWrapper, calls its respective save function,
-   * and adds the object to the context's entites array, for later usage.
-   *
-   * @param $wrapper - the wrapped entity to save
-   * @return the saved EntityMetadataWrapper
-   */
-  public function save($wrapper) {
-    $wrapper->save();
-
-    $id = $wrapper->getIdentifier();
-
-    // Add the created entity to the array so it can be deleted later.
-    $this->entities[$id] = $wrapper;
-
-    return $wrapper;
-  }
-
-  /**
-   * Adds an entity's page to known pages.
-   *
-   * Takes an entity and acquires it's unique uri, then calls
-   * the addPage routine from PageContext to save it along
-   * with other saved pages.
-   *
-   * @param $entity - the entity to add a page for
-   */
-  public function addPage($entity) {
-    $uri = entity_uri($this->entity_type, $entity);
-
-    // Add the url to the page array for easy navigation.
-    $this->pageContext->addPage(array(
-      'title' => $entity->title,
-      'url' => $uri['path']
-    ));
-  }
-
 
   /**
    * Creates entities from a given table.
@@ -315,30 +278,53 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    */
   public function addMultipleFromTable(TableNode $entityTable) {
     foreach($this->arrayFromTableNode($entityTable) as $entity) {
-      $this->add($entity);
+      $this->save($entity);
     }
   }
 
   /**
    * Build routine for an entity.
    *
-   * Given an array of key-mapped values, the build routine is as follows:
-   * * 1. Create the entity based off the array given
-   * * 2. Wrap the fresh entity in an EntityMetadataWrapper (and finish any data population)
-   * * 3. Save the wrapped entity.
-   * * 4. Add the uri page for the entity to the array of pages.
-   *
-   * @param $entity - the array of key-mapped values
+   * @param $fields - the array of key-mapped values
+   * @return $wrapper - EntityMetadataWrapper
    */
-  public function add($entity) {
-    $entity = $this->create($entity);
-    $wrapper = $this->wrap($entity);
-    $wrapper = $this->save($wrapper);
-    $entity = entity_load($this->entity_type, array($wrapper->getIdentifier()));
-    $entity = reset($entity);
-    $this->addPage($entity);
-    // Make sure that we process any search indexed items.
+  public function save($fields) {
+    $wrapper = $this->new_wrapper();
+    $this->pre_save($wrapper, $fields);
+    $wrapper->save();
+    $this->post_save($wrapper, $fields);
+    return $wrapper;
+  }
+
+   /**
+    * Do further processing after saving.
+    *
+    * @param $wrapper
+    * @param $fields
+    */
+  public function pre_save($wrapper, $fields) {
+    $this->apply_fields($wrapper, $fields);
+  }
+
+  /**
+   * Do further processing after saving.
+   *
+   * @param $wrapper
+   * @param $fields
+   */
+  public function post_save($wrapper, $fields) {
+    // Add the url to the page array for easy navigation.
+    $this->pageContext->addPage(array(
+      'title' => $wrapper->label(),
+      'url' => $wrapper->url->value(),
+    ));
+
+    // Process any outstanding search items.
     $this->searchContext->process();
+
+    // Add the created entity to the array so it can be deleted later.
+    $id = $wrapper->getIdentifier();
+    $this->entities[$id] = $wrapper;
   }
 
   /**
@@ -356,23 +342,5 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
       $items[] = $itemHash;
     }
     return $items;
-  }
-
-  /**
-   * Check toolbar if this->user isn't working.
-   */
-  public function getCurrentUser() {
-    if ($this->user) {
-      return $this->user;
-    }
-    $session = $this->getSession();
-    $page = $session->getPage();
-    $xpath = $page->find('xpath', "//div[@class='content']/span[@class='links']/a[1]");
-    $userName = $xpath->getText();
-    $uid = db_query('SELECT uid FROM users WHERE name = :user_name', array(':user_name' =>  $userName))->fetchField();
-    if ($uid && $user = user_load($uid)) {
-      return $user;
-    }
-    return FALSE;
   }
 }

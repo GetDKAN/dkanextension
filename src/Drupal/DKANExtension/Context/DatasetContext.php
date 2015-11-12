@@ -13,14 +13,7 @@ use Symfony\Component\Console\Helper\Table;
 class DatasetContext extends RawDKANEntityContext {
 
   public function __construct() {
-    parent::__construct(array(
-      'author' => 'author',
-      'title' => 'title',
-      'description' => 'body',
-      'publisher' => 'og_group_ref',
-      'published' => 'status',
-      'tags' => 'field_tags',
-    ),
+    parent::__construct(array(),
       'dataset',
       'node'
     );
@@ -35,35 +28,6 @@ class DatasetContext extends RawDKANEntityContext {
     $this->groupContext = $environment->getContext('Drupal\DKANExtension\Context\GroupContext');
   }
 
-  /**
-   * Sets the multi-fields for body, tags, and reference to this dataset's group.
-   *
-   * @param $entity - the stdClass entity to wrap
-   * @return \EntityMetadataWrapper of the entity
-   */
-  public function wrap($entity){
-    $context = $this->groupContext;
-    // To-do: add in support for multiple groups
-    if (isset($entity->og_group_ref)) {
-      $groupwrapper = $context->getGroupByName($entity->og_group_ref);
-      unset($entity->og_group_ref);
-
-    }
-
-    $body = $entity->body;
-    $tagterms = taxonomy_get_term_by_name($entity->field_tags);
-    $tagterm = array_values($tagterms)[0];
-
-    unset($entity->body);
-    unset($entity->og_group_ref);
-    unset($entity->field_tags);
-    $wrapper = entity_metadata_wrapper('node', $entity, array('bundle' => 'dataset'));
-    $wrapper->og_group_ref->set(array($groupwrapper->nid->value()));
-    $wrapper->body->set(array('value' => $body));
-    $wrapper->field_tags->set(array($tagterm->tid));
-
-    return $wrapper;
-  }
 
   /**
    * Creates datasets from a table.
@@ -98,21 +62,5 @@ class DatasetContext extends RawDKANEntityContext {
     if (!$found) {
       throw new \Exception(sprintf("The text '%s' was not found", $text));
     }
-  }
-
-
-  /**
-   * Get Dataset by name
-   *
-   * @param $name - title of dataset
-   * @return EntityMetadataWrapper dataset or FALSE
-   */
-  public function getDatasetByName($name){
-    foreach($this->entities as $dataset) {
-      if ($dataset->title->value() == $name) {
-        return $dataset;
-      }
-    }
-    return FALSE;
   }
 }

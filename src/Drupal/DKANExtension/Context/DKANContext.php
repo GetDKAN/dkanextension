@@ -47,30 +47,6 @@ class DKANContext extends RawDrupalContext implements SnippetAcceptingContext {
 
 
   /**
-   * @When I search for :term
-   */
-  public function iSearchFor($term) {
-    $session = $this->getSession();
-    $search_form_id = '#dkan-sitewide-dataset-search-form--2';
-    $search_form = $session->getPage()->findAll('css', $search_form_id);
-    if (count($search_form) == 1) {
-      $search_form = array_pop($search_form);
-      $search_form->fillField("search", $term);
-      $search_form->pressButton("edit-submit--2");
-      $results = $session->getPage()->find("css", ".view-dkan-datasets");
-      if (!isset($results)) {
-        throw new Exception("Search results region not found on the page.");
-      }
-    }
-    else if(count($search_form) > 1) {
-      throw new Exception("More than one search form found on the page.");
-    }
-    else if(count($search_form) < 1) {
-      throw new Exception("No search form with the id of found on the page.");
-    }
-  }
-
-  /**
    * @Then /^I should see the administration menu$/
    */
   public function iShouldSeeTheAdministrationMenu() {

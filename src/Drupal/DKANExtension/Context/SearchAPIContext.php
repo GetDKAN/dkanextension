@@ -51,7 +51,7 @@ class SearchAPIContext extends RawDrupalContext implements SnippetAcceptingConte
 
     foreach ($indexes as $index) {
       $items = search_api_get_items_to_index($this->search_indexes[$index]);
-      search_api_index_specific_items($index, $items);
+      search_api_index_specific_items($this->search_indexes[$index], $items);
     }
   }
 
@@ -112,6 +112,18 @@ class SearchAPIContext extends RawDrupalContext implements SnippetAcceptingConte
   }
 
   /**
+   * @Then I should not see :text in the search results
+   */
+  public function iShouldNotSeeTextInSearchResults($text) {
+    $results = $this->findInResults('named', array('content', $text));
+    foreach ($results as $key => $result) {
+      if (!empty($result)) {
+        throw new \Exception("$text found in search result: $key.");
+      }
+    }
+  }
+
+  /**
    * @Then I should see :text in the search results
    */
   public function iShouldSeeTextInSearchResults($text) {
@@ -139,6 +151,10 @@ class SearchAPIContext extends RawDrupalContext implements SnippetAcceptingConte
   }
 
   public function findResults() {
+    if (empty($this->active_form)) {
+      throw new \Exception("No active search form has been set.");
+    }
+
     $form_data = $this->search_forms[$this->active_form];
     $search_results_node = $this->getSession()->getPage()->find('css', $form_data['results_css']);
     if (empty($search_results_node)) {

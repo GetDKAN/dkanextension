@@ -44,7 +44,7 @@ class PageContext extends RawDrupalContext {
       try {
         $code = $session->getStatusCode();
         if ($code < 200 || $code >= 300) {
-          throw new Exception("Page $page_title ($url) visited, but it returned a non-2XX response code of $code.");
+          throw new \Exception("Page $page_title ($url) visited, but it returned a non-2XX response code of $code.");
         }
       } catch (UnsupportedDriverActionException $e) {
         // Some drivers don't support status codes, namely Selenium2Driver so
