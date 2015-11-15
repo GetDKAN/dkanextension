@@ -257,9 +257,9 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
           if (empty($name)) {
             continue;
           }
-          $wrapper = $this->entityStore->retrieve_by_name($name);
-          if ($wrapper !== false) {
-            $nids[] = $wrapper->id;
+          $found_node_wrapper = $this->entityStore->retrieve_by_name($name);
+          if ($found_node_wrapper !== false) {
+            $nids[] = $found_node_wrapper->nid->value();
           }
           else {
             throw new \Exception("Named Node '$name' not found, was it created during the test?");
