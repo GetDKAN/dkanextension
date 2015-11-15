@@ -6,6 +6,7 @@ use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\Gherkin\Node\TableNode;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
+use EntityMetadataWrapperException;
 
 
 /**
@@ -36,7 +37,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
   protected $entityStore;
 
 
-  public function __construct($field_map_overrides = array(), $bundle = '', $entity_type = 'node') {
+  public function __construct($entity_type , $bundle, $field_map_overrides = array('published' => 'status')) {
     $entity_info = entity_get_info($entity_type);
     $this->entity_type = $entity_type;
 
@@ -174,116 +175,125 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
   }
 
   public function set_field($wrapper, $label, $value) {
+    $property = null;
+    try {
+      // Make sure there is a mapping to an actual property.
+      if (!isset($this->field_map[$label])) {
+        $all_fields = implode(", \n", array_keys($this->field_map));
+        throw new \Exception("There is no field mapped to label '$label'. Available fields are: $all_fields");
+      }
+      $property = $this->field_map[$label];
 
-    // Make sure there is a mapping to an actual property.
-    if (!isset($this->field_map[$label])) {
-      $all_fields = implode(", \n", array_keys($this->field_map));
-      throw new \Exception("There is no field mapped to label '$label''. Available fields are: $all_fields");
-    }
-    $property = $this->field_map[$label];
-
-    // If no type is set for this property, then try to just output as-is.
-    if (!isset($this->field_properties[$property]['type'])) {
-      $wrapper->$property = $value;
-      return;
-    }
-
-    $field_type = $this->field_properties[$property]['type'];
-
-    switch ($field_type) {
-      // Can be NID
-      case 'integer':
-        break;
-
-      // Do our best to handle 0, false, "false", or "No"
-      case 'boolean':
-        if (gettype($value) == 'string') {
-          $value = strtolower($value);
-          $value = ($value == 'yes') ? true : $value;
-          $value = ($value == 'no') ? false : $value;
-        }
-        $wrapper->$property = (bool) $value;
-        break;
-
-      // Dates - handle strings as best we can. See http://php.net/manual/en/datetime.formats.relative.php
-      case 'date':
-        $date = date_create($value);
-        if ($date === false) {
-          throw new \Exception("Couldn't create a date with '$value'");
-        }
-        break;
-
-      // User reference
-      case 'user':
-        $user = user_load_by_name($value);
-        if ($user === false) {
-          throw new \Exception("Can't find a user with username '$value'");
-        }
-        $wrapper->$property = $user;
-        break;
-
-      // Simple text field.
-      case 'text':
-      // Formatted text like body
-      case 'text_formatted':
-        // For now just apply directly.
+      // If no type is set for this property, then try to just output as-is.
+      if (!isset($this->field_properties[$property]['type'])) {
         $wrapper->$property = $value;
-        break;
+        return;
+      }
 
-      case 'list<taxonomy_term>':
-        // Convert the tags to tids.
-        $tids = array();
-        foreach ($this->explode_list($value) as $term) {
-          $info = field_info_field($property);
-          $vocab_machine_name = $info['settings']['allowed_values'][0]['vocabulary'];
-          if ($found_terms = taxonomy_get_term_by_name($term, $vocab_machine_name)) {
-            $found_term = reset($found_terms);
+      $field_type = $this->field_properties[$property]['type'];
+
+      switch ($field_type) {
+        // Can be NID
+        case 'integer':
+          break;
+
+        // Do our best to handle 0, false, "false", or "No"
+        case 'boolean':
+          if (gettype($value) == 'string') {
+            $value = strtolower($value);
+            $value = ($value == 'yes') ? TRUE : $value;
+            $value = ($value == 'no') ? FALSE : $value;
+          }
+          $wrapper->$property->set((bool) $value);
+          break;
+
+        // Dates - handle strings as best we can. See http://php.net/manual/en/datetime.formats.relative.php
+        case 'date':
+          $date = date_create($value);
+          if ($date === FALSE) {
+            throw new \Exception("Couldn't create a date with '$value'");
+          }
+          $wrapper->$property->set($date);
+          break;
+
+        // User reference
+        case 'user':
+          $user = user_load_by_name($value);
+          if ($user === FALSE) {
+            throw new \Exception("Can't find a user with username '$value'");
+          }
+          $wrapper->$property->set($user);
+          break;
+
+        // Simple text field.
+        case 'text':
+          $wrapper->$property->set($value);
+          break;
+
+        // Formatted text like body
+        case 'text_formatted':
+          // For now just apply the value directly.
+          $wrapper->$property->set(array('value' => $value));
+          break;
+
+        case 'list<taxonomy_term>':
+          // Convert the tags to tids.
+          $tids = array();
+          foreach ($this->explode_list($value) as $term) {
+            $info = field_info_field($property);
+            $vocab_machine_name = $info['settings']['allowed_values'][0]['vocabulary'];
+            if ($found_terms = taxonomy_get_term_by_name($term, $vocab_machine_name)) {
+              $found_term = reset($found_terms);
               $tids[] = $found_term->tid;
+            }
+            else {
+              throw new \Exception("Term '$term'' not found in vocabulary '$vocab_machine_name'' for field '$property'");
+            }
           }
-          else {
-            throw new \Exception("Term '$term'' not found in vocabulary '$vocab_machine_name'' for field '$property'");
+          $wrapper->$property->set($tids);
+          break;
+
+        /* TODO BELOW */
+
+        // Node reference.
+        case 'node':
+        case 'list<node>':
+          $nids = array();
+          foreach ($this->explode_list($value) as $name) {
+            if (empty($name)) {
+              continue;
+            }
+            $found_node_wrapper = $this->entityStore->retrieve_by_name($name);
+            if ($found_node_wrapper !== FALSE) {
+              $nids[] = $found_node_wrapper->nid->value();
+            }
+            else {
+              throw new \Exception("Named Node '$name' not found, was it created during the test?");
+            }
           }
-        }
-        $wrapper->$property->set($tids);
-        break;
-
-      /* TODO BELOW */
-
-      // Node reference.
-      case 'node':
-      case 'list<node>':
-        $nids = array();
-        foreach ($this->explode_list($value) as $name) {
-          if (empty($name)) {
-            continue;
-          }
-          $found_node_wrapper = $this->entityStore->retrieve_by_name($name);
-          if ($found_node_wrapper !== false) {
-            $nids[] = $found_node_wrapper->nid->value();
-          }
-          else {
-            throw new \Exception("Named Node '$name' not found, was it created during the test?");
-          }
-        }
-        $wrapper->$property->set($nids);
-        break;
+          $wrapper->$property->set($nids);
+          break;
 
 
-
-        break;
-      // Not sure (something more complex)
-      case 'struct':
-      // Images
-      case 'field_item_image':
-      // Links
-      case 'field_item_link':
-      // Text field formatting?
-      case 'token':
-      // References to nodes
-      default:
-        // For now, just error out as we can't handle it yet.
-        throw new \Exception("Not sure how to handle field '$label' with type '$field_type'");
-        break;
+          break;
+        // Not sure (something more complex)
+        case 'struct':
+          // Images
+        case 'field_item_image':
+          // Links
+        case 'field_item_link':
+          // Text field formatting?
+        case 'token':
+          // References to nodes
+        default:
+          // For now, just error out as we can't handle it yet.
+          throw new \Exception("Not sure how to handle field '$label' with type '$field_type'");
+          break;
+      }
+    }
+    catch (EntityMetadataWrapperException $e ) {
+      $print_val = print_r($value, true);
+      echo "Error when setting field '$property' with value '$print_val': Error Message => {$e->getMessage()}";
     }
   }
 

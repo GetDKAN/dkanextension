@@ -10,15 +10,9 @@ use Behat\Gherkin\Node\TableNode;
 class DKANDataStoryContext extends RawDKANEntityContext{
 
     public function __construct(){
-        parent::__construct(array(
-                'title' => 'title',
-                'author' => 'author',
-                'status' => 'status',
-                'description' => 'body',
-                'tags' => 'field_tags',
-            ),
-            'dkan_data_story',
-            'node'
+        parent::__construct(
+            'node',
+            'dkan_data_story'
         );
     }
 

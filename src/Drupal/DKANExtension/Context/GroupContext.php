@@ -12,13 +12,9 @@ use \stdClass;
 class GroupContext extends RawDKANEntityContext {
 
   public function __construct() {
-    parent::__construct(array(
-      'author' => 'author',
-      'title' => 'title',
-      'published' => 'status'
-    ),
-      'group',
-      'node'
+    parent::__construct(
+      'node',
+      'group'
     );
   }
 
@@ -108,11 +104,10 @@ class GroupContext extends RawDKANEntityContext {
    * @return EntityMetadataWrapper group or FALSE
    */
   public function getGroupByName($name) {
-    foreach($this->entities as $group) {
-      if ($group->title->value() == $name) {
-        return $group;
-      }
+    if ($found_group = $this->entityStore->retrieve_by_name($name)) {
+      return $found_group;
     }
+
     // In case the group was not created by 'Given groups',
     //  such as being created manually by form interaction,
     //  we fetch the group using entity_load

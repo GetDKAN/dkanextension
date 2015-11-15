@@ -13,9 +13,9 @@ use Symfony\Component\Console\Helper\Table;
 class DatasetContext extends RawDKANEntityContext {
 
   public function __construct() {
-    parent::__construct(array(),
-      'dataset',
-      'node'
+    parent::__construct(
+      'node',
+      'dataset'
     );
   }
 

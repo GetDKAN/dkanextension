@@ -10,11 +10,9 @@ use Behat\Gherkin\Node\TableNode;
 class DataDashboardContext extends RawDKANEntityContext{
 
   public function __construct(){
-    parent::__construct(array(
-      'title' => 'title',
-    ),
-      'data_dashboard',
-      'node'
+    parent::__construct(
+      'node',
+      'data_dashboard'
     );
   }
 

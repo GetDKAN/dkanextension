@@ -13,17 +13,11 @@ use Behat\Gherkin\Node\TableNode;
 class ResourceContext extends RawDKANEntityContext{
 
     public function __construct(){
-        parent::__construct(array(
-            'author' => 'author',
-            'title' => 'title',
-            'description' => 'body',
-            'publisher' => 'og_group_ref',
-            'published' => 'status',
-            'resource format' => 'field_format',
-            'dataset' => 'field_dataset_ref',
-        ),
-            'resource',
-            'node'
+        parent::__construct(
+          'node',
+          'resource',
+          // note that this field is called "Groups" not "publisher" in the form, should the field name be updated?
+          array('publisher' => 'og_group_ref')
         );
     }
 
