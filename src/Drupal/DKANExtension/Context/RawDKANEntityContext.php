@@ -14,7 +14,7 @@ use Behat\Behat\Hook\Scope\AfterScenarioScope;
 class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingContext {
 
   // Store entities as EntityMetadataWrappers for easy property inspection.
-  protected $entities = array();
+  //protected $entities = array();
 
   protected $entity_type = '';
   protected $bundle = '';
@@ -30,6 +30,10 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    * @var \Drupal\DKANExtension\Context\SearchAPIContext
    */
   protected $searchContext;
+  /**
+   * @var \Drupal\DKANExtension\Context\EntityStore
+   */
+  protected $entityStore;
 
 
   public function __construct($field_map_overrides = array(), $bundle = '', $entity_type = 'node') {
@@ -77,6 +81,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    */
   public function gatherContexts(BeforeScenarioScope $scope) {
     $environment = $scope->getEnvironment();
+    $this->entityStore = $environment->getContext('Drupal\DKANExtension\Context\EntityStore');
     $this->pageContext = $environment->getContext('Drupal\DKANExtension\Context\PageContext');
     $this->searchContext = $environment->getContext('Drupal\DKANExtension\Context\SearchAPIContext');
   }
@@ -85,7 +90,11 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    * @AfterScenario
    */
   public function deleteAll(AfterScenarioScope $scope) {
-    foreach ($this->entities as $wrapper) {
+    $wrappers = $this->entityStore->retrieve($this->entity_type, $this->bundle);
+    if ($wrappers === false) {
+      return;
+    }
+    foreach ($wrappers as $wrapper) {
       // The behat user teardown deletes all the content of a user automatically,
       // so we want to get a fresh entity instead of relying on the wrapper
       // (or a bool that confirms it's deleted)
@@ -104,7 +113,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     // For Scenarios Outlines, EntityContext is not deleted and recreated
     // and thus the entities array is not deleted and houses stale entities
     // from previous examples, so we clear it here
-    $this->entities = array();
+    $this->entityStore->delete($this->entity_type);
 
     // Make sure that we process any index items if they were deleted.
     $this->searchContext->process();
@@ -117,12 +126,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    * @return Content or FALSE
    */
   private function getByName($name) {
-    foreach ($this->entities as $entity) {
-      if ($entity->title == $name) {
-        return $entity;
-      }
-    }
-    return FALSE;
+    return $this->entityStore->retrieve_by_name($name);
   }
 
   /**
@@ -247,6 +251,25 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
 
       // Node reference.
       case 'node':
+      case 'list<node>':
+        $nids = array();
+        foreach ($this->explode_list($value) as $name) {
+          if (empty($name)) {
+            continue;
+          }
+          $wrapper = $this->entityStore->retrieve_by_name($name);
+          if ($wrapper !== false) {
+            $nids[] = $wrapper->id;
+          }
+          else {
+            throw new \Exception("Named Node '$name' not found, was it created during the test?");
+          }
+        }
+        $wrapper->$property->set($nids);
+        break;
+
+
+
         break;
       // Not sure (something more complex)
       case 'struct':
@@ -257,7 +280,6 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
       // Text field formatting?
       case 'token':
       // References to nodes
-      case 'list<node>':
       default:
         // For now, just error out as we can't handle it yet.
         throw new \Exception("Not sure how to handle field '$label' with type '$field_type'");
@@ -324,7 +346,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
 
     // Add the created entity to the array so it can be deleted later.
     $id = $wrapper->getIdentifier();
-    $this->entities[$id] = $wrapper;
+    $this->entityStore->store($this->entity_type, $this->bundle, $id, $wrapper, $wrapper->label());
   }
 
   /**
