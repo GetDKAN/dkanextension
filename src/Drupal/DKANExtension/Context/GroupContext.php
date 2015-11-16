@@ -98,7 +98,7 @@ class GroupContext extends RawDKANEntityContext {
     if (isset($account)) {
       og_group('node', $group->getIdentifier(), array(
           "entity type" => "user",
-          "entity" => $this->user,
+          "entity" => $account,
           "membership type" => OG_MEMBERSHIP_TYPE_DEFAULT,
       ));
       og_role_grant('node', $group->getIdentifier(), $account->uid, $role);
