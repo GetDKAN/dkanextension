@@ -27,11 +27,20 @@ class ResourceContext extends RawDKANEntityContext{
      * @Given resources:
      */
     public function addResources(TableNode $resourcesTable){
+        $bool = false;
+
+        // find out if add datastore is set to yes
+        foreach($resourcesTable as $resourceHash){
+            if($resourceHash['add datastore'] === 'Yes'){
+                $bool = true;
+            }
+            // This is where the add datastore field should be removed from the table
+            // since it's not a resource entity field
+            unset($resourcesTable[$resourceHash]);
+        }
         parent::addMultipleFromTable($resourcesTable);
-        foreach($this->entities as $wrapper){
-            $entity = entity_load($this->entity_type, array($wrapper->getIdentifier()));
-            $entity = reset($entity);
-            $this->datastoreContext->addDatastore($entity);
+        if($bool){
+            // add the datastore to the resource by getting the resource entity and calling addDatastore
         }
     }
 
@@ -43,7 +52,18 @@ class ResourceContext extends RawDKANEntityContext{
         $environment = $scope->getEnvironment();
         $this->groupContext = $environment->getContext('Drupal\DKANExtension\Context\GroupContext');
         $this->datasetContext = $environment->getContext('Drupal\DKANExtension\Context\DatasetContext');
-        $this->datastoreContext = $environment->getContext('Drupal\DKANExtension\Context\DKANDatastoreContext');
+    }
+
+    /**
+     * Create an empty DKAN Datastore object for a resource
+     *
+     * @param node - the resource node object
+     * @return the datastore object
+     */
+    public function addDatastore($node){
+        $uuid = $node->uuid;
+        $datastore = dkan_datastore_go($uuid, NULL);
+        return $datastore;
     }
 
     /**
