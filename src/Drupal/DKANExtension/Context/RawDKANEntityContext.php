@@ -236,15 +236,26 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
           $wrapper->$property->set(array('value' => $value));
           break;
 
+        case 'taxonomy_term':
+          if (!isset($value)) {
+            break;
+          }
+          if($found_term = $this->tidFromTermName($property, $value)) {
+            $tid = $found_term;
+          }
+          else {
+            throw new \Exception("Term '$term'' not found in vocabulary '$vocab_machine_name'' for field '$property'");
+          }
+          $wrapper->$property->set($tid);
+          break;
+
+
         case 'list<taxonomy_term>':
           // Convert the tags to tids.
           $tids = array();
           foreach ($this->explode_list($value) as $term) {
-            $info = field_info_field($property);
-            $vocab_machine_name = $info['settings']['allowed_values'][0]['vocabulary'];
-            if ($found_terms = taxonomy_get_term_by_name($term, $vocab_machine_name)) {
-              $found_term = reset($found_terms);
-              $tids[] = $found_term->tid;
+            if ($found_term = $this->tidFromTermName($property, $term)) {
+              $tids[] = $found_term;
             }
             else {
               throw new \Exception("Term '$term'' not found in vocabulary '$vocab_machine_name'' for field '$property'");
@@ -293,7 +304,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     }
     catch (EntityMetadataWrapperException $e ) {
       $print_val = print_r($value, true);
-      echo "Error when setting field '$property' with value '$print_val': Error Message => {$e->getMessage()}";
+      throw new \Exception("Error when setting field '$property' with value '$print_val': Error Message => {$e->getMessage()}");
     }
   }
 
@@ -375,4 +386,17 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     }
     return $items;
   }
+
+  function tidFromTermName($field_name, $term) {
+    $info = field_info_field($field_name);
+    $vocab_machine_name = $info['settings']['allowed_values'][0]['vocabulary'];
+    if ($found_terms = taxonomy_get_term_by_name($term, $vocab_machine_name)) {
+      $found_term = reset($found_terms);
+      return $found_term->tid;
+    }
+    else {
+      return false;
+    }
+  }
+
 }

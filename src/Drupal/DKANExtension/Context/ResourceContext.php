@@ -17,7 +17,7 @@ class ResourceContext extends RawDKANEntityContext{
           'node',
           'resource',
           // note that this field is called "Groups" not "publisher" in the form, should the field name be updated?
-          array('publisher' => 'og_group_ref')
+          array('publisher' => 'og_group_ref', 'published' => 'status')
         );
     }
 
