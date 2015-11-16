@@ -118,6 +118,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     // and thus the entities array is not deleted and houses stale entities
     // from previous examples, so we clear it here
     $this->entityStore->delete($this->entity_type, $this->bundle);
+    $this->entityStore->names_flush();
 
     // Make sure that we process any index items if they were deleted.
     $this->searchContext->process();

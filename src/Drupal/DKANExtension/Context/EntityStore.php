@@ -89,4 +89,8 @@ class EntityStore implements Context {
     }
     return false;
   }
+
+  function names_flush() {
+    $this->names = array();
+  }
 }
