@@ -1,7 +1,6 @@
 <?php
 namespace Drupal\DKANExtension\Context;
 
-use Drupal\DrupalExtension\Context\RawDrupalContext;
 use Drupal\DrupalExtension\Context\DrupalContext;
 use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\Mink\Exception\UnsupportedDriverActionException as UnsupportedDriverActionException;
@@ -14,7 +13,7 @@ use \stdClass;
 /**
  * Defines application features from the specific context.
  */
-class DKANContext extends RawDrupalContext implements SnippetAcceptingContext {
+class DKANContext extends DrupalContext {
 
   /**
    * Initializes context.
@@ -115,6 +114,15 @@ class DKANContext extends RawDrupalContext implements SnippetAcceptingContext {
     }
     if($num !== intval($arg1)){
       throw new \Exception(sprintf("Did not find %d %s items, found %d instead.", $arg1, $arg2, sizeof($num)));
+    }
+  }
+
+  function getCurrentUser() {
+    if (isset($this->user)) {
+      return $this->user;
+    }
+    else {
+      return false;
     }
   }
 }

@@ -2,6 +2,7 @@
 namespace Drupal\DKANExtension\Context;
 
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
+use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Gherkin\Node\TableNode;
 use EntityFieldQuery;
 use \stdClass;
@@ -11,12 +12,24 @@ use \stdClass;
  */
 class GroupContext extends RawDKANEntityContext {
 
+  protected $dkanContext;
+
   public function __construct() {
     parent::__construct(
       'node',
       'group'
     );
   }
+
+  /**
+   * @BeforeScenario
+   */
+  public function gatherContexts(BeforeScenarioScope $scope){
+    parent::gatherContexts($scope);
+    $environment = $scope->getEnvironment();
+    $this->drupalContext = $environment->getContext('Drupal\DKANExtension\Context\DKANContext');
+  }
+
 
   /**
    * Creates OG Groups from a table.
@@ -80,7 +93,9 @@ class GroupContext extends RawDKANEntityContext {
 
     $role = $this->getGroupRoleByName($role);
 
-    if (isset($this->user)) {
+    $account = $this->dkanContext->getCurrentUser();
+
+    if (isset($account)) {
       og_group('node', $group->getIdentifier(), array(
           "entity type" => "user",
           "entity" => $this->user,
