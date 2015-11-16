@@ -75,9 +75,9 @@ class MailContext extends RawDrupalContext implements SnippetAcceptingContext {
       if (!$found) {
         throw new \Exception(sprintf("Email to %s with content %s not found.", $username, $content));
       }
+    }
     else {
-        throw new \Exception(sprintf("User %s not found.", $username));
-      }
+      throw new \Exception(sprintf("User %s not found.", $username));
     }
   }
 
@@ -98,6 +98,47 @@ class MailContext extends RawDrupalContext implements SnippetAcceptingContext {
     }
     if (!$found) {
       throw new \Exception(sprintf("Email to %s with content %s not found.", $emailAddress, $content));
+    }
+  }
+
+  /**
+   *  @Then the email address :emailAddress should not receive an email
+   */
+  public function emailShouldNotReceiveAnEmail($emailAddress)
+  {
+    $found = false;
+    foreach ($this->getMails() as $message) {
+      try {
+        $this->assertShouldBeAddressedToEmail($message, $emailAddress);
+        $found = TRUE;
+      } catch (\Exception $e) {
+      }
+    }
+    if ($found) {
+      throw new \Exception(sprintf("Email was sent to %s", $emailAddress));
+    }
+  }
+
+  /**
+   *  @Then the user :username should not receive an email
+   */
+  public function userShouldNotReceiveAnEmail($username)
+  {
+    $found = false;
+    if($user = user_load_by_name($username)) {
+      foreach ($this->getMails() as $message) {
+        try {
+          $this->assertShouldBeAddressedToEmail($message, $user->mail);
+          $found = TRUE;
+        } catch (\Exception $e) {
+        }
+      }
+      if ($found) {
+        throw new \Exception(sprintf("Email was sent to %s", $username));
+      }
+    }
+    else {
+      throw new \Exception(sprintf("User %s not found.", $username));
     }
   }
 

@@ -27,7 +27,7 @@ class GroupContext extends RawDKANEntityContext {
   public function gatherContexts(BeforeScenarioScope $scope){
     parent::gatherContexts($scope);
     $environment = $scope->getEnvironment();
-    $this->drupalContext = $environment->getContext('Drupal\DKANExtension\Context\DKANContext');
+    $this->dkanContext = $environment->getContext('Drupal\DKANExtension\Context\DKANContext');
   }
 
 
