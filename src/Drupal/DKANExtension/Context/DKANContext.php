@@ -85,4 +85,26 @@ class DKANContext extends RawDrupalContext implements SnippetAcceptingContext {
     }
     return $element;
   }
+
+  /**
+   * @Then I should see :arg1 items in the :arg2 region
+   */
+  public function iShouldSeeItemsInTheRegion($arg1, $arg2)
+  {
+    $context = $this->minkContext;
+    $region = $context->getRegion($arg2);
+    $items = $region->findAll('css', '.views-row');
+    $num = sizeof($items);
+    if($num === 0){
+      $items = $region->find('css', '.views-row-last');
+      if(!empty($items)) $num = 2;
+      else{
+        $items = $region->find('css', '.views-row-first');
+        if(!empty($items)) $num = 1;
+      }
+    }
+    if($num !== intval($arg1)){
+      throw new \Exception(sprintf("Did not find %d %s items, found %d instead.", $arg1, $arg2, sizeof($num)));
+    }
+  }
 }
