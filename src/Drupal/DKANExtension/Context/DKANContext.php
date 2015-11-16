@@ -7,6 +7,7 @@ use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\Mink\Exception\UnsupportedDriverActionException as UnsupportedDriverActionException;
 use Behat\Gherkin\Node\TableNode;
 use Behat\Mink\Exception\DriverException;
+use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Behat\Tester\Exception\PendingException;
 use \stdClass;
 
@@ -26,6 +27,15 @@ class DKANContext extends RawDrupalContext implements SnippetAcceptingContext {
     // Set the default timezone to NY
     date_default_timezone_set('America/New_York');
   }
+
+  /**
+   * @BeforeScenario
+   */
+  public function gatherContexts(BeforeScenarioScope $scope) {
+    $environment = $scope->getEnvironment();
+    $this->minkContext = $environment->getContext('Drupal\DrupalExtension\Context\MinkContext');
+  }
+
 
   /****************************
    * HELPER FUNCTIONS
