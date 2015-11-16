@@ -40,6 +40,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
   public function __construct($entity_type , $bundle, $field_map_overrides = array('published' => 'status')) {
     $entity_info = entity_get_info($entity_type);
     $this->entity_type = $entity_type;
+    $this->field_properties = array();
 
     // Check that the bundle specified actually exists, or if none given,
     // that this is an entity with no bundles (single bundle w/ name of entity)
@@ -59,8 +60,10 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
 
     // Store the field properties for later.
     $property_info = entity_get_property_info($this->entity_type);
-    // Store the fields for this bundle.
-    $this->field_properties = $property_info['bundles'][$this->bundle]['properties'];
+    // Store the fields for this bundle, but only if the bundle has fields
+    if (isset( $property_info['bundles'][$this->bundle])) {
+      $this->field_properties += $property_info['bundles'][$this->bundle]['properties'];
+    }
     // Store the properties shared by all entities of this type.
     $this->field_properties +=  $property_info['properties'];
 
