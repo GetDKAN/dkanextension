@@ -110,6 +110,29 @@ class GroupContext extends RawDKANEntityContext {
   }
 
   /**
+   * @Then I should see the list of permissions for the group
+   */
+  public function iShouldSeePermissionsForTheGroup(){
+    $permissions = og_get_permissions();
+
+    foreach($permissions as $machine_name => $perm) {
+      $this->dkanContext->minkContext->assertPageContainsText(strip_tags($perm['title']));
+    }
+  }
+
+  /**
+   * @Then I should see the list of roles for the group :group
+   */
+  public function iShouldSeeRolesForGroup($group){
+    $group = $this->getGroupByName($group);
+    $roles = og_roles('node', 'group', $group->getIdentifier());
+
+    foreach($roles as $machine_name => $role) {
+      $this->dkanContext->minkContext->assertPageContainsText(strip_tags($role));
+    }
+  }
+
+  /**
    * Get Group by name
    *
    * First looks inside this context's array of wrapped entities,
