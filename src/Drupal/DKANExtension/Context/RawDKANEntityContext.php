@@ -173,6 +173,9 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    */
   public function apply_fields($wrapper, $field) {
     foreach ($field as $label => $value ) {
+      if(isset($this->field_map[$label]) && $this->field_map[$label] === 'status'){
+        $value = $this->convertStringToBool($value);
+      }
       $this->set_field($wrapper, $label, $value);
     }
     return $wrapper;
@@ -199,14 +202,13 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
       switch ($field_type) {
         // Can be NID
         case 'integer':
+          $wrapper->$property->set((int)$value);
           break;
 
         // Do our best to handle 0, false, "false", or "No"
         case 'boolean':
           if (gettype($value) == 'string') {
-            $value = strtolower($value);
-            $value = ($value == 'yes') ? TRUE : $value;
-            $value = ($value == 'no') ? FALSE : $value;
+            $value = $this->convertStringToBool($value);
           }
           $wrapper->$property->set((bool) $value);
           break;
@@ -389,6 +391,18 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
       $items[] = $itemHash;
     }
     return $items;
+  }
+
+  /**
+   * Converts a string value to a boolean value
+   *
+   * @param $value String
+   */
+  function convertStringToBool($value){
+    $value = strtolower($value);
+    $value = ($value === 'yes') ? TRUE : $value;
+    $value = ($value === 'no') ? FALSE : $value;
+    return $value;
   }
 
   function tidFromTermName($field_name, $term) {
