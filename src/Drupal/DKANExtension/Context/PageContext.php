@@ -79,6 +79,29 @@ class PageContext extends RawDrupalContext {
   }
 
   /**
+   * @Given I should not be able to access :page_title
+   */
+  public function iShouldNotBeAbleToAccessPage($page_title) {
+    if (isset($this->pages[$page_title])) {
+      $session = $this->getSession();
+      $url = $this->pages[$page_title]['url'];
+      $session->visit($this->locatePath($url));
+      try {
+        $code = $session->getStatusCode();
+        if ($code == 200) {
+          throw new \Exception("200 OK: the page is accessible.");
+        }
+      } catch (UnsupportedDriverActionException $e) {
+        // Some drivers don't support status codes, namely Selenium2Driver so
+        // just drive on.
+      }
+    }
+    else {
+      throw new \Exception("Page $page_title not found in the pages array, was it added?");
+    }
+  }
+
+  /**
    * @Given I should be able to edit :page
    */
   public function iShouldBeAbleToEditPage($page) {
@@ -136,7 +159,7 @@ class PageContext extends RawDrupalContext {
    * @Given I should not be able to delete :page
    */
   public function iShouldNotBeAbleToDeletePage($page) {
-    $node = $this->getNidByTitle($page);
+    $node = $this->getNodeByTitle($page);
     if(!$node) {
       throw new \Exception(sprintf($page . " node not found."));
     }

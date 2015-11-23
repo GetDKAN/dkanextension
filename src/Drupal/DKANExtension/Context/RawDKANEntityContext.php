@@ -172,7 +172,17 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    * @throws \Exception
    */
   public function apply_fields($wrapper, $field) {
+
     foreach ($field as $label => $value ) {
+      // Moderation field are treated diffrently.
+    $field_skip = array(
+      'moderation' => 'moderation',
+      'moderation_date' => 'moderation_date'
+      );
+      if (in_array($label, $field_skip)) {
+        continue;
+      }
+
       if(isset($this->field_map[$label]) && $this->field_map[$label] === 'status'){
         $value = $this->convertStringToBool($value);
       }
@@ -215,7 +225,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
 
         // Dates - handle strings as best we can. See http://php.net/manual/en/datetime.formats.relative.php
         case 'date':
-          $date = date_create($value);
+          $date = strtotime($value);
           if ($date === FALSE) {
             throw new \Exception("Couldn't create a date with '$value'");
           }
@@ -367,6 +377,37 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
       'title' => $wrapper->label(),
       'url' => $wrapper->url->value(),
     ));
+
+      if($fields["dataset"]) {
+        node_save($wrapper->value());
+      }
+
+    if (isset($fields['moderation'])) {
+      // Make the node author as the revision author.
+      // This is needed for workbench views filtering.
+      $wrapper->value()->log = $wrapper->value()->uid;
+      $wrapper->value()->revision_uid = $wrapper->value()->uid;
+      db_update('node_revision')
+        ->fields(array(
+          'uid' => $wrapper->value()->uid,
+        ))
+        ->condition('nid', $wrapper->getIdentifier(), '=')
+        ->execute();
+
+      // Manage moderation state.
+      workbench_moderation_moderate($wrapper->value(), $fields["moderation"]);
+      // Hack the moderation date
+      if (isset($fields['moderation_date'])) {
+        $datetime = new \DateTime($fields['moderation_date']);
+        db_update('workbench_moderation_node_history')
+          ->fields(array(
+            'stamp' => $datetime->getTimestamp(),
+          ))
+          ->condition('nid', $wrapper->getIdentifier(), '=')
+          ->condition('vid', $wrapper->value()->vid, '=')
+          ->execute();
+      }
+    }
 
     // Process any outstanding search items.
     $this->searchContext->process();
