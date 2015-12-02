@@ -10,6 +10,7 @@ use EntityDrupalWrapper;
 use EntityMetadataWrapperException;
 use Entity;
 use Symfony\Component\Config\Definition\Exception\Exception;
+use Drupal\DKANExtension\Hook\Scope\BeforeDKANEntityCreateScope;
 
 
 /**
@@ -361,6 +362,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     * @param $fields
     */
   public function pre_save($wrapper, $fields) {
+    $this->dispatchDKANHooks('BeforeDKANEntityCreateScope', $wrapper);
     // Update the changed date after the entity has been saved.
     if (isset($fields['date changed'])) {
       unset($fields['date changed']);
@@ -375,9 +377,11 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    * @param $fields
    */
   public function post_save($wrapper, $fields) {
+    $this->dispatchDKANHooks('AfterDKANEntityCreateScope', $wrapper);
     // Remove the base url from the url and add it
     // to the page array for easy navigation.
     $url = parse_url($wrapper->url->value());
+    // Add the url to the page array for easy navigation.
     $this->pageContext->addPage(array(
       'title' => $wrapper->label(),
       'url' => $url['path'],
@@ -467,5 +471,34 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
         ->condition('nid', $nid, '=')
         ->execute();
     }
+  }
+  /*
+   * Fire off a DKAN hook.
+   *
+   * Based on RawDrupalContext::dispatchHooks().
+   *
+   * @param $scopeType
+   * @param \stdClass $entity
+   * @throws
+   */
+  protected function dispatchDKANHooks($scopeType, \EntityDrupalWrapper $entity) {
+    $fullScopeClass = 'Drupal\\DKANExtension\\Hook\\Scope\\' . $scopeType;
+    $scope = new $fullScopeClass($this->getDrupal()->getEnvironment(), $this, $entity);
+    $callResults = $this->dispatcher->dispatchScopeHooks($scope);
+
+    // The dispatcher suppresses exceptions, throw them here if there are any.
+    foreach ($callResults as $result) {
+      if ($result->hasException()) {
+        $exception = $result->getException();
+        throw $exception;
+      }
+    }
+  }
+
+  /**
+   * @BeforeDKANEntityScope
+   */
+  protected function testHooks($scope) {
+    var_dump($scope);
   }
 }
