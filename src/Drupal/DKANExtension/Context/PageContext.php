@@ -55,4 +55,18 @@ class PageContext extends RawDrupalContext {
       throw new \Exception("Page $page_title not found in the pages array, was it added?");
     }
   }
+
+  /**
+   * @Then I should be on (the) :page page
+   */
+  public function assertOnPage($page_title){
+    if(isset($this->pages[$page_title])){
+      $current_url = $this->getSession()->getCurrentUrl();
+      $current_url = str_replace($this->getMinkParameter("base_url"), "", $current_url);
+      $url = $this->pages[$page_title]['url'];
+      if($current_url !== $url){
+        throw new \Exception("Current page is $current_url, but $url expected.");
+      }
+    }
+  }
 }

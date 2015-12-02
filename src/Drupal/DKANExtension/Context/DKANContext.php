@@ -125,4 +125,78 @@ class DKANContext extends DrupalContext {
       return false;
     }
   }
+
+  /**
+   * @Then /^I should see a gravatar image in the "([^"]*)" region$/
+   */
+  public function iShouldSeeAGravatarImageInTheRegion($region)
+  {
+      $regionObj = $this->minkContext->getRegion($region);
+      $elements = $regionObj->findAll('css', 'img');
+      if (!empty($elements)) {
+          foreach ($elements as $element) {
+              if ($element->hasAttribute('src')) {
+                  $value = $element->getAttribute('src');
+                  if (preg_match('/\/\/www\.gravatar\.com\/avatar\/.*/', $value)) {
+                      return;
+          }
+        }
+      }
+    }
+    throw new \Exception(sprintf('The element gravatar link was not found in the "%s" region on the page %s', $region, $this->getSession()->getCurrentUrl()));
+
+  }
+
+  /**
+   * @Then /^I should not see a gravatar image in the "([^"]*)" region$/
+   */
+  public function iShouldNotSeeAGravatarImageInTheRegion($region)
+  {
+      $regionObj = $this->minkContext->getRegion($region);
+      $elements = $regionObj->findAll('css', 'img');
+      $match = FALSE;
+      if (!empty($elements)) {
+          foreach ($elements as $element) {
+              if ($element->hasAttribute('src')) {
+                  $value = $element->getAttribute('src');
+                  if (preg_match('/\/\/www\.gravatar\.com\/avatar\/.*/', $value)) {
+                      $match = TRUE;
+                    }
+        }
+      }
+    }
+    if ($match) {
+          throw new \Exception(sprintf('The element gravatar link was found in the "%s" region on the page %s', $region, $this->getSession()->getCurrentUrl()));
+    }
+    else {
+          return;
+    }
+  }
+
+  /**
+   * @Then I should see the :user user page
+   */
+  public function assertSeeTheUserPage($user){
+    $regionObj = $this->minkContext->getRegion('breadcrumb');
+    $val = $regionObj->find('css', '.active-trail');
+    $html = $val->getHtml();
+    if($html !== $user){
+      throw new \Exception('The user profile cannot be verified');
+    }
+    $currUser = $this->getCurrentUser();
+    if($currUser->name === $user){
+      $regionObj = $this->getSession()->getPage()->find('css', '.dkan-profile-page-user-name');
+      $val = $regionObj->getText();
+      if($val !== $user){
+        throw new \Exception('The user profile cannot be verified');
+      }
+    }
+    else{
+      $regionObj = $this->getSession()->getPage()->find('css', '.pane-views-user-profile-fields-block');
+      $val = $regionObj->find('xpath', '//h3[text()="'.$user.'"]');
+      if($val === null){
+        throw new \Exception('The user profile cannot be verified');
+      }
+    }
+  }
 }
