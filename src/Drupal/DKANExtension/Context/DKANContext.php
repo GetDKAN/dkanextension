@@ -14,8 +14,6 @@ use \stdClass;
  * Defines application features from the specific context.
  */
 class DKANContext extends DrupalContext {
-  /** @var  \Drupal\DrupalExtension\Context\MinkContext */
-  protected $minkContext;
 
   /**
    * Initializes context.
@@ -98,17 +96,24 @@ class DKANContext extends DrupalContext {
   }
 
   /**
-   * @Then I should see :count :css items in the :region region
+   * @Then I should see :arg1 items in the :arg2 region
    */
-  public function assertCSSItemsInTheRegion($count, $css, $region)
+  public function iShouldSeeItemsInTheRegion($arg1, $arg2)
   {
-    throw new \Exception(sprintf("I'm not sure this works as it should yet, don't use. --Frank"));
-    $count = intval($count);
-    $region = $this->minkContext->getRegion($region);
-    $items = $region->findAll('css', $css);
-    $num_found = sizeof($items);
-    if($num_found !== $count){
-      throw new \Exception(sprintf("Did not find %d %s items, found %d instead.", $count, $css, $num_found));
+    $context = $this->minkContext;
+    $region = $context->getRegion($arg2);
+    $items = $region->findAll('css', '.views-row');
+    $num = sizeof($items);
+    if($num === 0){
+      $items = $region->find('css', '.views-row-last');
+      if(!empty($items)) $num = 2;
+      else{
+        $items = $region->find('css', '.views-row-first');
+        if(!empty($items)) $num = 1;
+      }
+    }
+    if($num !== intval($arg1)){
+      throw new \Exception(sprintf("Did not find %d %s items, found %d instead.", $arg1, $arg2, sizeof($num)));
     }
   }
 
