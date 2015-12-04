@@ -362,10 +362,12 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    * @param $fields
    */
   public function post_save($wrapper, $fields) {
-    // Add the url to the page array for easy navigation.
+    // Remove the base url from the url and add it
+    // to the page array for easy navigation.
+    $url = parse_url($wrapper->url->value());
     $this->pageContext->addPage(array(
       'title' => $wrapper->label(),
-      'url' => $wrapper->url->value(),
+      'url' => $url['path'],
     ));
 
     // Process any outstanding search items.

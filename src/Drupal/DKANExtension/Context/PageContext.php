@@ -60,13 +60,19 @@ class PageContext extends RawDrupalContext {
    * @Then I should be on (the) :page page
    */
   public function assertOnPage($page_title){
-    if(isset($this->pages[$page_title])){
-      $current_url = $this->getSession()->getCurrentUrl();
-      $current_url = str_replace($this->getMinkParameter("base_url"), "", $current_url);
-      $url = $this->pages[$page_title]['url'];
-      if($current_url !== $url){
-        throw new \Exception("Current page is $current_url, but $url expected.");
-      }
+    if(!isset($this->pages[$page_title])){
+      throw new \Exception("Named page $page_title doesn't exist.");
+    }
+    $current_url = $this->getSession()->getCurrentUrl();
+    // Support relative paths when on a "base_url" page. Otherwise assume a full url.
+    $current_url = str_replace($this->getMinkParameter("base_url"), "", $current_url);
+
+    $current_url = drupal_parse_url($current_url);
+    $current_url = $current_url['path'];
+
+    $url = $this->pages[$page_title]['url'];
+    if($current_url !== $url){
+      throw new \Exception("Current page is $current_url, but $url expected.");
     }
   }
 }
