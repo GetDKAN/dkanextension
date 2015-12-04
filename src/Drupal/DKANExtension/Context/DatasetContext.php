@@ -12,10 +12,14 @@ use Symfony\Component\Console\Helper\Table;
  */
 class DatasetContext extends RawDKANEntityContext {
 
+  use ModeratorTrait;
+
   public function __construct() {
     parent::__construct(
       'node',
-      'dataset'
+      'dataset',
+      NULL,
+      array('moderation', 'moderation_date')
     );
   }
 
@@ -27,7 +31,6 @@ class DatasetContext extends RawDKANEntityContext {
     $environment = $scope->getEnvironment();
     $this->groupContext = $environment->getContext('Drupal\DKANExtension\Context\GroupContext');
   }
-
 
   /**
    * Creates datasets from a table.
@@ -46,8 +49,7 @@ class DatasetContext extends RawDKANEntityContext {
    * @throws \Exception
    *   If region or text within it cannot be found.
    */
-  public function iShouldSeeADatasetCalled($text)
-  {
+  public function iShouldSeeADatasetCalled($text) {
     $session = $this->getSession();
     $page = $session->getPage();
     $search_region = $page->find('css', '.view-dkan-datasets');
@@ -63,4 +65,21 @@ class DatasetContext extends RawDKANEntityContext {
       throw new \Exception(sprintf("The text '%s' was not found", $text));
     }
   }
+
+  /**
+   * @Then The dataset :title is in :state moderation state
+   */
+  public function theDatasetIsInModerationState($title, $state) {
+    $node = reset($this->getNodeByTitle($title));
+    if(!$node) {
+      throw new \Exception(sprintf($title . " node not found."));
+    }
+    $this->isNodeInModerationState($node, $state);
+  }
+
+  public function post_save($wrapper, $fields) {
+    parent::post_save($wrapper, $fields);
+    $this->moderate($wrapper, $fields);
+  }
+
 }

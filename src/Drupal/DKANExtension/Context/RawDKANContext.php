@@ -8,6 +8,7 @@ use Behat\Mink\Exception\UnsupportedDriverActionException as UnsupportedDriverAc
 use Behat\Gherkin\Node\TableNode;
 use Behat\Mink\Exception\DriverException;
 use Behat\Behat\Tester\Exception\PendingException;
+use EntityFieldQuery;
 use \stdClass;
 
 /**
@@ -28,28 +29,23 @@ class RawDKANContext extends RawDrupalContext implements SnippetAcceptingContext
   }
 
   /**
-   * Get dataset nid by title from context.
+   * Get node by title from Database.
    *
-   * @param $nodeTitle title of the node.
-   * @param $type type of nodo look for.
+   * @param $title: title of the node.
    *
-   * @return Node ID or FALSE
+   * @return Node or FALSE
    */
-  private function getNidByTitle($nodeTitle, $type) {
-    $context = array();
-    switch ($type) {
-      case 'dataset':
-        $context = $this->datasets;
-        break;
-      case 'resource':
-        $context = $this->resources;
+  public function getNodeByTitle($title) {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+      ->propertyCondition('title', $title)
+      ->range(0, 1);
+    $result = $query->execute();
+    if (isset($result['node'])) {
+      $nid = array_keys($result['node']);
+      return entity_load('node', $nid);
     }
-
-    foreach ($context as $key => $node) {
-      if ($node->title == $nodeTitle) {
-        return $key;
-      }
-    }
-    return FALSE;
+    return false;
   }
+
 }

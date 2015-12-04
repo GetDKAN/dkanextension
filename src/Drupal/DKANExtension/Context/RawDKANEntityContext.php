@@ -7,6 +7,7 @@ use Behat\Gherkin\Node\TableNode;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use EntityMetadataWrapperException;
+use EntityFieldQuery;
 
 
 /**
@@ -22,6 +23,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
   protected $bundle_key = FALSE;
   protected $field_map = array();
   protected $field_properties = array();
+  protected $field_map_custom = array();
 
   /**
    * @var \Drupal\DKANExtension\Context\PageContext
@@ -37,10 +39,15 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
   protected $entityStore;
 
 
-  public function __construct($entity_type , $bundle, $field_map_overrides = array('published' => 'status')) {
+  public function __construct($entity_type, $bundle, $field_map_overrides = NULL, $field_map_custom = array()) {
     $entity_info = entity_get_info($entity_type);
     $this->entity_type = $entity_type;
     $this->field_properties = array();
+
+    if ($field_map_overrides == NULL) {
+      $field_map_overrides = array('published' => 'status');
+    }
+    $this->field_map_custom = $field_map_custom;
 
     // Check that the bundle specified actually exists, or if none given,
     // that this is an entity with no bundles (single bundle w/ name of entity)
@@ -174,12 +181,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
   public function apply_fields($wrapper, $field) {
 
     foreach ($field as $label => $value ) {
-      // Moderation field are treated diffrently.
-    $field_skip = array(
-      'moderation' => 'moderation',
-      'moderation_date' => 'moderation_date'
-      );
-      if (in_array($label, $field_skip)) {
+      if (in_array($label, $this->field_map_custom)) {
         continue;
       }
 
@@ -298,6 +300,12 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
               throw new \Exception("Named Node '$name' not found, was it created during the test?");
             }
           }
+
+          if ($property == "field_feedback_entity_reference") {
+            $wrapper->$property->set(reset($nids));
+            break;
+          }
+
           $wrapper->$property->set($nids);
           break;
 
@@ -378,35 +386,8 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
       'url' => $wrapper->url->value(),
     ));
 
-      if($fields["dataset"]) {
-        node_save($wrapper->value());
-      }
-
-    if (isset($fields['moderation'])) {
-      // Make the node author as the revision author.
-      // This is needed for workbench views filtering.
-      $wrapper->value()->log = $wrapper->value()->uid;
-      $wrapper->value()->revision_uid = $wrapper->value()->uid;
-      db_update('node_revision')
-        ->fields(array(
-          'uid' => $wrapper->value()->uid,
-        ))
-        ->condition('nid', $wrapper->getIdentifier(), '=')
-        ->execute();
-
-      // Manage moderation state.
-      workbench_moderation_moderate($wrapper->value(), $fields["moderation"]);
-      // Hack the moderation date
-      if (isset($fields['moderation_date'])) {
-        $datetime = new \DateTime($fields['moderation_date']);
-        db_update('workbench_moderation_node_history')
-          ->fields(array(
-            'stamp' => $datetime->getTimestamp(),
-          ))
-          ->condition('nid', $wrapper->getIdentifier(), '=')
-          ->condition('vid', $wrapper->value()->vid, '=')
-          ->execute();
-      }
+    if($fields["dataset"]) {
+      node_save($wrapper->value());
     }
 
     // Process any outstanding search items.
@@ -456,6 +437,26 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     else {
       return false;
     }
+  }
+
+  /**
+   * Get node by title from Database.
+   *
+   * @param $title: title of the node.
+   *
+   * @return Node or FALSE
+   */
+  public function getNodeByTitle($title) {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+      ->propertyCondition('title', $title)
+      ->range(0, 1);
+    $result = $query->execute();
+    if (isset($result['node'])) {
+      $nid = array_keys($result['node']);
+      return entity_load('node', $nid);
+    }
+    return false;
   }
 
 }
