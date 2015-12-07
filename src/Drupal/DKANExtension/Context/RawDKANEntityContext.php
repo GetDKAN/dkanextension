@@ -301,15 +301,13 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
             }
           }
 
-          if ($property == "field_feedback_entity_reference") {
+          if ($field_type == "node") {
+            // If the field type is node only one nid is expected.
+            // Default to the first element.
             $wrapper->$property->set(reset($nids));
-            break;
+          } else {
+            $wrapper->$property->set($nids);
           }
-
-          $wrapper->$property->set($nids);
-          break;
-
-
           break;
         // Not sure (something more complex)
         case 'struct':
