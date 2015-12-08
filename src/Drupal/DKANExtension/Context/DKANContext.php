@@ -1,6 +1,7 @@
 <?php
 namespace Drupal\DKANExtension\Context;
 
+use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use Drupal\DrupalExtension\Context\DrupalContext;
 use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\Mink\Exception\UnsupportedDriverActionException as UnsupportedDriverActionException;
@@ -14,6 +15,9 @@ use \stdClass;
  * Defines application features from the specific context.
  */
 class DKANContext extends DrupalContext {
+
+  /** @var  \Drupal\DrupalExtension\Context\MinkContext */
+  protected $minkContext;
 
   /**
    * Initializes context.
@@ -174,28 +178,51 @@ class DKANContext extends DrupalContext {
   }
 
   /**
+   * @Then I should see (the|a) user page
    * @Then I should see the :user user page
    */
-  public function assertSeeTheUserPage($user){
+  public function assertSeeTheUserPage($user = false){
+
+    //TODO: This relies on the breadcrumb, can it be made better?
     $regionObj = $this->minkContext->getRegion('breadcrumb');
     $val = $regionObj->find('css', '.active-trail');
     $html = $val->getHtml();
     if($html !== $user){
-      throw new \Exception('The user profile cannot be verified');
+      throw new \Exception('Could not find user name in breadcrumb. Text found:' . $val);
     }
-    $currUser = $this->getCurrentUser();
-    if($currUser->name === $user){
-      $regionObj = $this->getSession()->getPage()->find('css', '.dkan-profile-page-user-name');
-      $val = $regionObj->getText();
-      if($val !== $user){
-        throw new \Exception('The user profile cannot be verified');
-      }
+
+    $regionObj = $this->minkContext->getRegion('user page');
+    $val = $regionObj->getText();
+    if($user !== false && strpos($val, $user) === false){
+      throw new \Exception('Could not find username in the user page region. Text found:' . $val);
     }
-    else{
-      $regionObj = $this->getSession()->getPage()->find('css', '.pane-views-user-profile-fields-block');
-      $val = $regionObj->find('xpath', '//h3[text()="'.$user.'"]');
-      if($val === null){
-        throw new \Exception('The user profile cannot be verified');
+  }
+
+  /**
+   * @Then I should see (the|a) user command center
+   * @Then I should see the :user user command center
+   */
+  public function assertSeeUserCommandCenter($user = false){
+    $regionObj = $this->minkContext->getRegion('user command center');
+    $val = $regionObj->getText();
+    if($user !== false && strpos($val, $user) === FALSE){
+      throw new \Exception('Could not find username in the user command center region. Text found:' . $val);
+    }
+    //TODO: Consider checking for the elements that should be in the command center.
+  }
+
+
+  /**
+   * @AfterScenario
+   *
+   * Delete any tempusers that were created outside of 'Given users'.
+   */
+  public function deleteTempUsers(AfterScenarioScope $scope) {
+    if ($scope->getScenario()->hasTag('deleteTempUsers')) {
+      // Get all users that start with tempUser*
+      $results = db_query("SELECT uid from users where name like 'tempuser%%'");
+      foreach ($results as $user) {
+        user_delete($user->uid);
       }
     }
   }
