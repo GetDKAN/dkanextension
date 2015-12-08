@@ -12,12 +12,14 @@ use Behat\Gherkin\Node\TableNode;
  */
 class ResourceContext extends RawDKANEntityContext{
 
-    public function __construct(){
+    use ModeratorTrait;
+
+    public function __construct() {
         parent::__construct(
-          'node',
-          'resource',
-          // note that this field is called "Groups" not "publisher" in the form, should the field name be updated?
-          array('publisher' => 'og_group_ref', 'published' => 'status')
+            'node',
+            'resource',
+            NULL,
+            array('moderation', 'moderation_date')
         );
     }
 
@@ -69,6 +71,14 @@ class ResourceContext extends RawDKANEntityContext{
         $wrapper->field_dataset_ref->set(array($dataset->nid->value()));
 
         return $wrapper;
+    }
+
+    /**
+     * Override RawDKANEntityContext::post_save()
+     */
+    public function post_save($wrapper, $fields) {
+        parent::post_save($wrapper, $fields);
+        $this->moderate($wrapper, $fields);
     }
 
 }
