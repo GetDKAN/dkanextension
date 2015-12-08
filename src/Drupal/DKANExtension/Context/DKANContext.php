@@ -1,6 +1,7 @@
 <?php
 namespace Drupal\DKANExtension\Context;
 
+use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use Drupal\DrupalExtension\Context\DrupalContext;
 use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\Mink\Exception\UnsupportedDriverActionException as UnsupportedDriverActionException;
@@ -187,13 +188,13 @@ class DKANContext extends DrupalContext {
     $val = $regionObj->find('css', '.active-trail');
     $html = $val->getHtml();
     if($html !== $user){
-      throw new \Exception('Could not find user name in breadcrumb.');
+      throw new \Exception('Could not find user name in breadcrumb. Text found:' . $val);
     }
 
     $regionObj = $this->minkContext->getRegion('user page');
     $val = $regionObj->getText();
     if($user !== false && strpos($val, $user) === false){
-      throw new \Exception('Could not find username in the user page region.');
+      throw new \Exception('Could not find username in the user page region. Text found:' . $val);
     }
   }
 
@@ -205,8 +206,24 @@ class DKANContext extends DrupalContext {
     $regionObj = $this->minkContext->getRegion('user command center');
     $val = $regionObj->getText();
     if($user !== false && strpos($val, $user) === FALSE){
-      throw new \Exception('Could not find username in the user command center region.');
+      throw new \Exception('Could not find username in the user command center region. Text found:' . $val);
     }
     //TODO: Consider checking for the elements that should be in the command center.
+  }
+
+
+  /**
+   * @AfterScenario
+   *
+   * Delete any tempusers that were created outside of 'Given users'.
+   */
+  public function deleteTempUsers(AfterScenarioScope $scope) {
+    if ($scope->getScenario()->hasTag('deleteTempUsers')) {
+      // Get all users that start with tempUser*
+      $results = db_query("SELECT uid from users where name like 'tempuser%%'");
+      foreach ($results as $user) {
+        user_delete($user->uid);
+      }
+    }
   }
 }
