@@ -15,6 +15,9 @@ use \stdClass;
  */
 class DKANContext extends DrupalContext {
 
+  /** @var  \Drupal\DrupalExtension\Context\MinkContext */
+  protected $minkContext;
+
   /**
    * Initializes context.
    *
@@ -174,29 +177,36 @@ class DKANContext extends DrupalContext {
   }
 
   /**
+   * @Then I should see (the|a) user page
    * @Then I should see the :user user page
    */
-  public function assertSeeTheUserPage($user){
+  public function assertSeeTheUserPage($user = false){
+
+    //TODO: This relies on the breadcrumb, can it be made better?
     $regionObj = $this->minkContext->getRegion('breadcrumb');
     $val = $regionObj->find('css', '.active-trail');
     $html = $val->getHtml();
     if($html !== $user){
-      throw new \Exception('The user profile cannot be verified');
+      throw new \Exception('Could not find user name in breadcrumb.');
     }
-    $currUser = $this->getCurrentUser();
-    if($currUser->name === $user){
-      $regionObj = $this->getSession()->getPage()->find('css', '.dkan-profile-page-user-name');
-      $val = $regionObj->getText();
-      if($val !== $user){
-        throw new \Exception('The user profile cannot be verified');
-      }
+
+    $regionObj = $this->minkContext->getRegion('user page');
+    $val = $regionObj->getText();
+    if($user !== false && strpos($val, $user) === false){
+      throw new \Exception('Could not find username in the user page region.');
     }
-    else{
-      $regionObj = $this->getSession()->getPage()->find('css', '.pane-views-user-profile-fields-block');
-      $val = $regionObj->find('xpath', '//h3[text()="'.$user.'"]');
-      if($val === null){
-        throw new \Exception('The user profile cannot be verified');
-      }
+  }
+
+  /**
+   * @Then I should see (the|a) user command center
+   * @Then I should see the :user user command center
+   */
+  public function assertSeeUserCommandCenter($user = false){
+    $regionObj = $this->minkContext->getRegion('user command center');
+    $val = $regionObj->getText();
+    if($user !== false && strpos($val, $user) === FALSE){
+      throw new \Exception('Could not find username in the user command center region.');
     }
+    //TODO: Consider checking for the elements that should be in the command center.
   }
 }
