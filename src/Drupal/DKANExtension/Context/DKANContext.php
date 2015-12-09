@@ -54,6 +54,10 @@ class DKANContext extends DrupalContext {
     return is_array($array) ? $array : array();
   }
 
+  public function getMink() {
+    return $this->minkContext;
+  }
+
   /*****************************
    * CUSTOM STEPS
    *****************************/

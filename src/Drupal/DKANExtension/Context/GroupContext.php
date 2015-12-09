@@ -11,7 +11,7 @@ use \stdClass;
  * Defines application features from the specific context.
  */
 class GroupContext extends RawDKANEntityContext {
-
+  /** @var  \Drupal\DKANExtension\Context\DKANContext */
   protected $dkanContext;
 
   public function __construct() {
@@ -116,7 +116,7 @@ class GroupContext extends RawDKANEntityContext {
     $permissions = og_get_permissions();
 
     foreach($permissions as $machine_name => $perm) {
-      $this->dkanContext->minkContext->assertPageContainsText(strip_tags($perm['title']));
+      $this->dkanContext->getMink()->assertPageContainsText(strip_tags($perm['title']));
     }
   }
 
@@ -128,7 +128,7 @@ class GroupContext extends RawDKANEntityContext {
     $roles = og_roles('node', 'group', $group->getIdentifier());
 
     foreach($roles as $machine_name => $role) {
-      $this->dkanContext->minkContext->assertPageContainsText(strip_tags($role));
+      $this->dkanContext->getMink()->assertPageContainsText(strip_tags($role));
     }
   }
 
@@ -192,5 +192,4 @@ class GroupContext extends RawDKANEntityContext {
     }
     return FALSE;
   }
-
 }
