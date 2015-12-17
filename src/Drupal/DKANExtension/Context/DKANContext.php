@@ -562,13 +562,17 @@ class DKANContext extends DrupalContext {
   public function iShouldSeeDatasetListInOrder($order, $criteria){
 
     $dataset_list = array();
+
+    // Get each view row corresponding to it's number on the page, and insert it into the array
+    // in the same order it appears
     $count = 1;
     while(($row = $this->getSession()->getPage()->find('css', '.views-row-'.$count)) !== null ){
-      $row = $row->find('css', 'h2');
+      $row = $row->find('css', 'h2');               // Grab the title only
       $dataset_list[$count-1] = $row->getText();
       $count++;
     }
 
+    // Convert possible criteria names to machine names
     switch($criteria){
       case 'Date changed':
         $criteria = 'changed';
@@ -582,40 +586,61 @@ class DKANContext extends DrupalContext {
     $index = search_api_index_load('datasets');
     $query = new \SearchApiQuery($index);
 
+    // Use search api query and attempt to mimic site's own search query
     $results = $query->condition('type', 'dataset')
         ->condition('status', '1')
         ->sort($criteria, strtoupper($order))
         ->range(0, 10)
         ->execute();
 
+    // Go through results of the search query
+    // and create an array of arrays where each sub-array
+    // contains datasets that have equal values for the given $criteria
+    //
     $count = 0;
     $prev_node = null;
     $queried_datasets = array(array());
     foreach($results['results'] as $result){
+
+      //Search api returns id so we load the node
       $node = node_load($result['id']);
+
+      // Check if not first node or if equal values between previous and current node
+      // Since it's sorted, the only equal values should be between the current loaded node
+      // And the last loaded node
       if($prev_node !== null && $prev_node->$criteria === $node->$criteria){
-        $count--;
+        $count--; // Subtract count to add node to the sub-array containing prev_node
       }
       $queried_datasets[$count][] = $node;
       $prev_node = $node;
       $count++;
     }
 
+    // Now we go through each sublist in the queried datasets,
+    // checking to see if the current dataset on the page list matches any inside the sublist.
+    // If it doesn't, then its criteria is not equal to any in the current sub-list and thus the page order
+    // is incorrect.
+    // Since queried datasets and page datasets have the same number of datasets,
     $in_subset = false;
     $count = 0;
     foreach($queried_datasets as $sublist){
+      // Step through the page's datasets, up until the end of the current sublist
+      // The ordering of the page may be different based on how the query returned them, but
+      // each dataset in the sublist should appear within the same range.
       for($index = $count; $index < count($sublist); $index++) {
+        // Look at each dataset in the queried sublist
         foreach($sublist as $dataset){
           if($dataset_list[$index] === $dataset->title){
             $in_subset = true;
           }
         }
         if(!$in_subset){
-          throw new \Exception("Does not match order of list, $dataset_list[$count] was next on page but expected $node->title");
+          throw new \Exception("Does not match order of list, $dataset_list[$count] was next on page but not expected.");
         }
         $in_subset = false;
       }
-      $count = count($sublist);
+      // Set init counter to end of latest sublist
+      $count += count($sublist);
     }
   }
 
