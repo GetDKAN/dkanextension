@@ -87,7 +87,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     $environment = $scope->getEnvironment();
     $this->entityStore = $environment->getContext('Drupal\DKANExtension\Context\EntityStore');
     $this->pageContext = $environment->getContext('Drupal\DKANExtension\Context\PageContext');
-    $this->searchContext = $environment->getContext('Drupal\DKANExtension\Context\SearchAPIContext');
+    // $this->searchContext = $environment->getContext('Drupal\DKANExtension\Context\SearchAPIContext');
   }
 
   /**
@@ -121,7 +121,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     $this->entityStore->names_flush();
 
     // Make sure that we process any index items if they were deleted.
-    $this->searchContext->process();
+    // $this->searchContext->process();
   }
 
   /**
@@ -371,7 +371,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     ));
 
     // Process any outstanding search items.
-    $this->searchContext->process();
+    // $this->searchContext->process();
 
     // Add the created entity to the array so it can be deleted later.
     $id = $wrapper->getIdentifier();
