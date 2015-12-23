@@ -384,8 +384,10 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
       'url' => $wrapper->url->value(),
     ));
 
-    if($fields["dataset"]) {
-      node_save($wrapper->value());
+    if (isset($fields["dataset"])) {
+      if($fields["dataset"]) {
+        node_save($wrapper->value());
+      }
     }
 
     // Process any outstanding search items.
