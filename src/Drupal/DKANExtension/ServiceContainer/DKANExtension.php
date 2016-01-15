@@ -1,19 +1,24 @@
 <?php
 
+namespace Drupal\DKANExtension\ServiceContainer;
+
 use Behat\Testwork\ServiceContainer\Extension as ExtensionInterface;
 use Behat\Testwork\ServiceContainer\ExtensionManager;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Loader\FileLoader;
+use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 
-class DrupalExtension implements ExtensionInterface {
+class DKANExtension implements ExtensionInterface {
   /**
    * Returns the extension config key.
    *
    * @return string
    */
   public function getConfigKey(){
-
+    return 'dkan';
   }
 
   /**
@@ -27,7 +32,7 @@ class DrupalExtension implements ExtensionInterface {
    * @param ExtensionManager $extensionManager
    */
   public function initialize(ExtensionManager $extensionManager) {
-
+    // Nothing is needed here.
   }
 
   /**
@@ -36,7 +41,14 @@ class DrupalExtension implements ExtensionInterface {
    * @param ArrayNodeDefinition $builder
    */
   public function configure(ArrayNodeDefinition $builder) {
-
+    $builder->
+      children()->
+        scalarNode('some_param')->
+          defaultValue('asfd')->
+          info('These params can be defined in behat.yml')->
+        end()->
+      end()->
+    end();
   }
 
   /**
@@ -46,6 +58,15 @@ class DrupalExtension implements ExtensionInterface {
    * @param array            $config
    */
   public function load(ContainerBuilder $container, array $config) {
+    //$loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/config'));
+    //$loader->load('services.yml');
+    $container->setParameter('dkan.some_param', $config['some_param']);
+    # Hook loader.
+    $container->setParameter('drupal.context.annotation.reader.class',
+      'Drupal\DrupalExtension\Context\Annotation\Reader');
+  }
+
+  public function process(ContainerBuilder $container) {
 
   }
 }
