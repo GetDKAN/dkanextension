@@ -6,7 +6,10 @@ use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\Gherkin\Node\TableNode;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
+use EntityDrupalWrapper;
 use EntityMetadataWrapperException;
+use Entity;
+use Symfony\Component\Config\Definition\Exception\Exception;
 
 
 /**
@@ -181,6 +184,12 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     return $wrapper;
   }
 
+  /**
+   * @param EntityDrupalWrapper $wrapper
+   * @param $label
+   * @param $value
+   * @throws \Exception
+   */
   public function set_field($wrapper, $label, $value) {
     $property = null;
     try {
@@ -215,11 +224,11 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
 
         // Dates - handle strings as best we can. See http://php.net/manual/en/datetime.formats.relative.php
         case 'date':
-          $date = date_create($value);
-          if ($date === FALSE) {
+          $timestamp = strtotime($value);
+          if ($timestamp === FALSE) {
             throw new \Exception("Couldn't create a date with '$value'");
           }
-          $wrapper->$property->set($date);
+          $wrapper->$property->set($timestamp);
           break;
 
         // User reference
@@ -352,6 +361,10 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     * @param $fields
     */
   public function pre_save($wrapper, $fields) {
+    // Update the changed date after the entity has been saved.
+    if (isset($fields['date changed'])) {
+      unset($fields['date changed']);
+    }
     $this->apply_fields($wrapper, $fields);
   }
 
@@ -369,6 +382,10 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
       'title' => $wrapper->label(),
       'url' => $url['path'],
     ));
+
+    if (isset($fields['date changed'])) {
+      $this->setChangedDate($wrapper, $fields['date changed']);
+    }
 
     // Process any outstanding search items.
     $this->searchContext->process();
@@ -419,4 +436,36 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     }
   }
 
+  /**
+   * Forces the change of a entities changed date as drupal makes this difficult.
+   *
+   * Note that this is only supported for nodes currently. TODO Support all entities.
+   * Also, there is no guarantee that another action won't cause the updated date to change.
+   *
+   * @param EntityDrupalWrapper $saved_wrapper
+   * @param String $time_str See time formats supported by strtotime().
+   */
+  function setChangedDate($saved_wrapper, $time_str) {
+    if (! ($saved_wrapper->type() == 'node')) {
+      throw new Exception("Specifying the 'changed' date is only supported for nodes currently.");
+    }
+    if (!$nid = $saved_wrapper->getIdentifier()) {
+      throw new Exception("Node ID could not be found. A node must be saved first before the changed date can be updated.");
+    }
+    // Use REQUEST_TIME, because that will remain consistent across all tests.
+    if (!$timestamp = strtotime($time_str, REQUEST_TIME)) {
+      throw new Exception("Could not create a timestamp from $time_str.");
+    }
+    else {
+      db_update('node')
+        ->fields(array('changed' => $timestamp))
+        ->condition('nid', $nid, '=')
+        ->execute();
+
+      db_update('node_revision')
+        ->fields(array('timestamp' => $timestamp))
+        ->condition('nid', $nid, '=')
+        ->execute();
+    }
+  }
 }
