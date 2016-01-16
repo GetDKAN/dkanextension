@@ -33,6 +33,7 @@ class DKANExtension implements ExtensionInterface {
    */
   public function initialize(ExtensionManager $extensionManager) {
     // Nothing is needed here.
+    $i = 1;
   }
 
   /**
@@ -63,10 +64,10 @@ class DKANExtension implements ExtensionInterface {
     $container->setParameter('dkan.some_param', $config['some_param']);
     # Hook loader.
     $container->setParameter('drupal.context.annotation.reader.class',
-      'Drupal\DrupalExtension\Context\Annotation\Reader');
+      'Drupal\DKANExtension\Context\Annotation\Reader');
   }
 
   public function process(ContainerBuilder $container) {
-
+   $i = 'test';
   }
 }
