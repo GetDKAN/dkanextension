@@ -1,0 +1,19 @@
+parameters:
+  dkan.entity_store.class: Drupal\DKANExtension\ServiceContainer\EntityStore
+
+  # Context initializer.
+  dkan.context.initializer.class: Drupal\DKANExtension\Context\Initializer\EntityAwareInitializer
+
+  dkan.parameters: {}
+
+services:
+  dkan.entity_store:
+    class: %dkan.entity_store.class%
+
+  dkan.context.initializer:
+    class: %dkan.context.initializer.class%
+    arguments:
+      - @dkan.entity_store
+      - %dkan.parameters%
+    tags:
+      - { name: context.initializer }

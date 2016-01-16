@@ -5,10 +5,8 @@ namespace Drupal\DKANExtension\ServiceContainer;
 use Behat\Testwork\ServiceContainer\Extension as ExtensionInterface;
 use Behat\Testwork\ServiceContainer\ExtensionManager;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
-use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
+use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Definition;
-use Symfony\Component\DependencyInjection\Loader\FileLoader;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 
 class DKANExtension implements ExtensionInterface {
@@ -45,8 +43,8 @@ class DKANExtension implements ExtensionInterface {
     $builder->
       children()->
         scalarNode('some_param')->
-          defaultValue('asfd')->
-          info('These params can be defined in behat.yml')->
+          defaultValue('\Drupal\DKANExtension\ServiceContainer\EntityStore')->
+          info('The class to use to store entities between steps.')->
         end()->
       end()->
     end();
@@ -59,10 +57,11 @@ class DKANExtension implements ExtensionInterface {
    * @param array            $config
    */
   public function load(ContainerBuilder $container, array $config) {
-    //$loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/config'));
-    //$loader->load('services.yml');
-    $container->setParameter('dkan.some_param', $config['some_param']);
-    # Hook loader.
+    $loader = new YamlFileLoader($container, new FileLocator(__DIR__));
+    $loader->load('services.yml');
+    //$container->setParameter('dkan.entity_store.class', $config['entity_store.class']);
+
+    # Override the DrupalExtension's Hook loader so we can add our own hooks.
     $container->setParameter('drupal.context.annotation.reader.class',
       'Drupal\DKANExtension\Context\Annotation\Reader');
   }

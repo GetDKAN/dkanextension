@@ -1,23 +1,22 @@
 <?php
 namespace Drupal\DKANExtension\Context;
 
+use Behat\Testwork\Environment\Environment;
+use Drupal\DKANExtension\ServiceContainer\EntityStore;
 use Drupal\DrupalExtension\Context\RawDrupalContext;
-use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\Gherkin\Node\TableNode;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use EntityDrupalWrapper;
 use EntityMetadataWrapperException;
-use Entity;
 use Symfony\Component\Config\Definition\Exception\Exception;
-use Drupal\DKANExtension\Hook\Scope\BeforeDKANEntityCreateScope;
-use EntityDrupalWrapper;
+use Drupal\DKANExtension\Context\EntityAwareInterface;
 
 
 /**
  * Defines application features from the specific context.
  */
-class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingContext {
+class RawDKANEntityContext extends RawDrupalContext implements EntityAwareInterface {
 
   // Store entities as EntityMetadataWrappers for easy property inspection.
   //protected $entities = array();
@@ -37,10 +36,13 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    */
   protected $searchContext;
   /**
-   * @var \Drupal\DKANExtension\Context\EntityStore
+   * @var \Drupal\DKANExtension\ServiceContainer\EntityStore
    */
   protected $entityStore;
 
+  public function setEntityStore(EntityStore $entityStore) {
+    $this->entityStore = $entityStore;
+  }
 
   public function __construct($entity_type , $bundle, $field_map_overrides = array('published' => 'status')) {
     $entity_info = entity_get_info($entity_type);
@@ -89,14 +91,16 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    * @BeforeScenario
    */
   public function gatherContexts(BeforeScenarioScope $scope) {
+    /** @var Environment $environment */
     $environment = $scope->getEnvironment();
-    $this->entityStore = $environment->getContext('Drupal\DKANExtension\Context\EntityStore');
     $this->pageContext = $environment->getContext('Drupal\DKANExtension\Context\PageContext');
     $this->searchContext = $environment->getContext('Drupal\DKANExtension\Context\SearchAPIContext');
   }
 
   /**
    * @AfterScenario
+   *
+   * @param AfterScenarioScope $scope
    */
   public function deleteAll(AfterScenarioScope $scope) {
     $wrappers = $this->entityStore->retrieve($this->entity_type, $this->bundle);

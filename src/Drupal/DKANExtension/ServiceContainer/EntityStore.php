@@ -1,5 +1,5 @@
 <?php
-namespace Drupal\DKANExtension\Context;
+namespace Drupal\DKANExtension\ServiceContainer;
 
 use Behat\Behat\Context\Context;
 
