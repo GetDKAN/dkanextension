@@ -16,7 +16,7 @@ use Drupal\DKANExtension\Context\EntityAwareInterface;
 /**
  * Defines application features from the specific context.
  */
-class RawDKANEntityContext extends RawDrupalContext implements EntityAwareInterface {
+class RawDKANEntityContext extends RawDKANContext implements EntityAwareInterface {
 
   // Store entities as EntityMetadataWrappers for easy property inspection.
   //protected $entities = array();
@@ -366,11 +366,18 @@ class RawDKANEntityContext extends RawDrupalContext implements EntityAwareInterf
     * @param $fields
     */
   public function pre_save($wrapper, $fields) {
-    $this->dispatchDKANHooks('BeforeDKANEntityCreateScope', $wrapper, $fields);
     // Update the changed date after the entity has been saved.
     if (isset($fields['date changed'])) {
       unset($fields['date changed']);
     }
+    if (!isset($fields['author']) && isset($this->field_map['author'])) {
+      $field = $this->field_map['author'];
+      $user = $this->getCurrentUser();
+      if ($user) {
+        $wrapper->$field->set($user);
+      }
+    }
+    $this->dispatchDKANHooks('BeforeDKANEntityCreateScope', $wrapper, $fields);
     $this->apply_fields($wrapper, $fields);
   }
 
