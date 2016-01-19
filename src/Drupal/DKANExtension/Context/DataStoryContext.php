@@ -7,7 +7,7 @@ use Behat\Gherkin\Node\TableNode;
 /**
  * Defines application features from the specific context.
  */
-class DKANDataStoryContext extends RawDKANEntityContext{
+class DataStoryContext extends RawDKANEntityContext{
 
     public function __construct(){
         parent::__construct(
