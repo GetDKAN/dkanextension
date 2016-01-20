@@ -14,8 +14,13 @@ class PageContext extends RawDKANContext {
    */
   public function addPages(TableNode $pagesTable) {
     foreach ($pagesTable as $pageHash) {
-      // @todo Add some validation.
-      $page = new Page($pageHash['title'], $pageHash['path']);
+      if (!isset($pageHash['name'])) {
+        throw new \Exception('name value missing for page.');
+      }
+      if (!isset($pageHash['url'])) {
+        throw new \Exception('url value missing for page.');
+      }
+      $page = new Page($pageHash['name'], $pageHash['url']);
       $this->getPageStore()->store($page);
     }
   }
@@ -35,14 +40,14 @@ class PageContext extends RawDKANContext {
   }
 
   /**
-   * @Given I should be able to access page :page_title
+   * @Given I should be able to access the :page_title page
    */
   public function iShouldBeAbleToAccessPage($page_title) {
     $this->assertCanViewPage($page_title);
   }
 
   /**
-   * @Given I should be denied access to page :page_title
+   * @Given I should be denied access to the :page_title page
    */
   public function iShouldBeDeniedToAccessPage($page_title) {
     // Assume mean getting a 403 (Access Denied), not just missing or an error.
@@ -50,7 +55,7 @@ class PageContext extends RawDKANContext {
   }
 
   /**
-   * @Given Page :page_title should not be found
+   * @Given The :page_title page should not be found
    */
   public function pageShouldBeNotFound($page_title) {
     $this->assertCanViewPage($page_title, null, 404);

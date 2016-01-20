@@ -79,8 +79,7 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
     if (!isset($page)) {
       throw new \Exception("Page $page_title not found in the pages array, was it added?");
     }
-    $session = $this->getSession();
-    $session->visit($this->locatePath($page->getUrl()));
+    $session = $this->visit($page->getUrl());
     $this->assertOnPage($page_title);
     return $session;
   }
@@ -93,18 +92,24 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
       return $session->getStatusCode();
     } catch (UnsupportedDriverActionException $e) {
       // Driver doesn't support this so we have to guess based on the page text.
-      $h1 = $session->getPage()->find('css', 'h1');
-      if (!$h1 || !$title = $h1->getText()) {
-        // No H1?  Let's assume that's a 500 error.
-        return 500;
+      $results = $session->getPage()->findAll('css', 'h1');
+      if (empty($results)) {
+        // No H1s?  Maybe we're on the a page like the front page the doesn't have them.
+        if(empty($session->getPage()->find('css', '#main'))) {
+          //Let's assume that's a 500 error.
+          return 500;
+        }
       }
-      $title = strtolower($title);
-      if ($title == 'access denied') {
-        return 403;
-      };
-      if ($title == 'page not found') {
-        return 404;
-      };
+      // Check each of the results.
+      foreach ($results as $h1) {
+        $title = strtolower($h1->getText());
+        if ($title == 'access denied') {
+          return 403;
+        }
+        elseif ($title == 'page not found') {
+          return 404;
+        }
+      }
       // Otherwise assume 200.
       return 200;
     }
@@ -137,23 +142,37 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
       throw new \Exception("Named page '$named_page' doesn't exist.");
     }
     $path = ($subpath) ? $page->getUrl() . "/$subpath" : $page->getUrl();
-    $session = $this->getSession();
-    $session->visit($path);
+    $session = $this->visit($path);
     $this->assertOnUrl($path);
     $code = $this->getStatusCode($session);
-    if (isset($assert_code) && $assert_code !== $code) {
-      throw new \Exception("Page {$session->getCurrentUrl()} code doesn't match $assert_code. CODE: $code");
+
+    // First check that a certain status code is expected.
+    if (isset($assert_code)) {
+      if ($assert_code !== $code) {
+        throw new \Exception("Page {$session->getCurrentUrl()} code doesn't match $assert_code. CODE: $code");
+      }
+      return $code;
     }
+
+    // Throw an exception if a non-successful code was found.
     if ($code < 200 || $code >= 500) {
       throw new \Exception("Page {$session->getCurrentUrl()} has an error. CODE: $code");
     }
-    if ($code == 404) {
+    elseif ($code == 404) {
       throw new \Exception("Page {$session->getCurrentUrl()} not found. CODE: $code");
     }
-    if ($code == 403) {
+    elseif ($code == 403) {
       throw new \Exception("Page {$session->getCurrentUrl()} is access denied. CODE: $code");
     }
     return $code;
+  }
+
+
+  public function visit($url) {
+    $session = $this->getSession();
+    $url = $this->locatePath($url);
+    $session->visit($url);
+    return $session;
   }
 
 }
