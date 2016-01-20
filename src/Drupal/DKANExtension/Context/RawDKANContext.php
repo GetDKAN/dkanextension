@@ -1,7 +1,10 @@
 <?php
 namespace Drupal\DKANExtension\Context;
 
+use Behat\Mink\Driver\GoutteDriver;
 use Behat\Mink\Exception\UnsupportedDriverActionException;
+use Behat\Mink\Mink;
+use Behat\Mink\Session;
 use Behat\Testwork\Environment\Environment;
 use Drupal\DKANExtension\ServiceContainer\EntityStore;
 use Drupal\DKANExtension\ServiceContainer\PageStore;
@@ -30,6 +33,11 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
    * @var \Drupal\DKANExtension\ServiceContainer\PageStore
    */
   protected $pageStore;
+
+  /**
+   * @var Session
+   */
+  protected $fakeSession;
 
   public function setEntityStore(EntityStore $entityStore) {
     $this->entityStore = $entityStore;
@@ -74,13 +82,17 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
     return FALSE;
   }
 
-  public function visitPage($page_title) {
-    $page = $this->getPageStore()->retrieve($page_title);
-    if (!isset($page)) {
-      throw new \Exception("Page $page_title not found in the pages array, was it added?");
+  public function visitPage($named_page, $sub_path = null) {
+
+    $page = $this->getPageStore()->retrieve($named_page);
+    if (!$page) {
+      throw new \Exception("Named page '$named_page' doesn't exist.");
     }
-    $session = $this->visit($page->getUrl());
-    $this->assertOnPage($page_title);
+    $path = ($sub_path) ? $page->getUrl() . "/$sub_path" : $page->getUrl();
+    $session = $this->getSessionFake();
+    $session = $this->visit($path, $session);
+    $this->assertOnUrl($path);
+
     return $session;
   }
 
@@ -115,8 +127,12 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
     }
   }
 
-  public function assertOnUrl($assert_url){
-    $current_url = $this->getSession()->getCurrentUrl();
+  public function assertOnUrl($assert_url, $session = null){
+    if (!$session) {
+      $session = $this->getSession();
+    }
+
+    $current_url = $session->getCurrentUrl();
     // Support relative paths when on a "base_url" page. Otherwise assume a full url.
     $current_url = str_replace($this->getMinkParameter("base_url"), "", $current_url);
 
@@ -136,15 +152,9 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
     $this->assertOnUrl($assert_url);
   }
 
-  public function assertCanViewPage($named_page, $subpath = null, $assert_code = null){
-    $page = $this->getPageStore()->retrieve($named_page);
-    if (!$page) {
-      throw new \Exception("Named page '$named_page' doesn't exist.");
-    }
-    $path = ($subpath) ? $page->getUrl() . "/$subpath" : $page->getUrl();
-    $session = $this->visit($path);
-    $this->assertOnUrl($path);
-    $code = $this->getStatusCode($session);
+
+  public function assertCanViewPage($named_page, $sub_path = null, $assert_code = null){
+    $session = $this->visitPage($named_page, $sub_path);
 
     // First check that a certain status code is expected.
     if (isset($assert_code)) {
@@ -167,12 +177,40 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
     return $code;
   }
 
+  /**
+   * @return \Behat\Mink\Session
+   */
+  public function getSessionFake() {
+    if (isset($this->fakeSession)) {
+      $session = $this->fakeSession();
+      //$session->reset();
+      return $session;
+    }
+    $driver = new GoutteDriver();
+    $session = new Session($driver);
+    $session->start();
+    $this->fakeSession = $session;
+    return $session;
+  }
 
-  public function visit($url) {
-    $session = $this->getSession();
+
+  public function visit($url, $session = null) {
+    if (!$session) {
+      $session = $this->getSession();
+    }
     $url = $this->locatePath($url);
     $session->visit($url);
     return $session;
   }
+
+  public function assertCurrentPageCode($assert_code = 200) {
+    $session = $this->getSession();
+    $code = $this->getStatusCode();
+    if ($code !== $assert_code) {
+      throw new \Exception("Page {$session->getCurrentUrl()} code doesn't match. ASSERT: $assert_code CODE: $code");
+    }
+  }
+
+
 
 }

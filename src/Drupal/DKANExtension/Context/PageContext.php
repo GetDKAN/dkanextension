@@ -27,6 +27,7 @@ class PageContext extends RawDKANContext {
 
   /**
    * @Given I am on (the) :page page
+   * @Given I visit (the) :page page
    */
   public function givenOnPage($page) {
     $this->visitPage($page);
@@ -37,6 +38,31 @@ class PageContext extends RawDKANContext {
    */
   public function assertOnPage($page){
     parent::assertOnPage($page);
+  }
+
+  /**
+   * @Then The page status should be :type
+   */
+  public function assertCurrentPageCode($type) {
+    switch ($type) {
+      case 'ok':
+        $code = 200;
+        break;
+
+      case 'access denied':
+        $code = 403;
+        break;
+
+      case 'not found':
+        $code = 404;
+        break;
+
+      case 'error':
+        $code = 500;
+        break;
+    }
+
+    parent::assertCurrentPageCode($code);
   }
 
   /**
@@ -91,5 +117,21 @@ class PageContext extends RawDKANContext {
     // Assume mean getting a 403 (Access Denied), not just missing or an error.
     $this->assertCanViewPage($named_entity, "delete", 403);
   }
+
+  /**
+   * @Given I visit the edit page for :named_entity
+   */
+  public function iVisitTheEntityEditPage($named_entity) {
+    $this->visitPage($named_entity, "edit");
+  }
+
+  /**
+   * @Given I visit the delete page for :named_entity
+   */
+  public function iVisitTheEntityDeletePage($named_entity) {
+    // Assume mean getting a 403 (Access Denied), not just missing or an error.
+    $this->visitPage($named_entity, "delete");
+  }
+
 
 }
