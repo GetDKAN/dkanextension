@@ -1,22 +1,18 @@
 <?php
 namespace Drupal\DKANExtension\Context;
 
-use Behat\Testwork\Environment\Environment;
-use Drupal\DKANExtension\ServiceContainer\EntityStore;
-use Drupal\DrupalExtension\Context\RawDrupalContext;
 use Behat\Gherkin\Node\TableNode;
-use Behat\Behat\Hook\Scope\BeforeScenarioScope;
+use Drupal\DKANExtension\ServiceContainer\Page;
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use EntityDrupalWrapper;
 use EntityMetadataWrapperException;
 use Symfony\Component\Config\Definition\Exception\Exception;
-use Drupal\DKANExtension\Context\EntityAwareInterface;
 
 
 /**
  * Defines application features from the specific context.
  */
-class RawDKANEntityContext extends RawDKANContext implements EntityAwareInterface {
+class RawDKANEntityContext extends RawDKANContext {
 
   // Store entities as EntityMetadataWrappers for easy property inspection.
   //protected $entities = array();
@@ -26,23 +22,6 @@ class RawDKANEntityContext extends RawDKANContext implements EntityAwareInterfac
   protected $bundle_key = FALSE;
   protected $field_map = array();
   protected $field_properties = array();
-
-  /**
-   * @var \Drupal\DKANExtension\Context\PageContext
-   */
-  protected $pageContext;
-  /**
-   * @var \Drupal\DKANExtension\Context\SearchAPIContext
-   */
-  protected $searchContext;
-  /**
-   * @var \Drupal\DKANExtension\ServiceContainer\EntityStore
-   */
-  protected $entityStore;
-
-  public function setEntityStore(EntityStore $entityStore) {
-    $this->entityStore = $entityStore;
-  }
 
   public function __construct($entity_type , $bundle, $field_map_overrides = array('published' => 'status')) {
     $entity_info = entity_get_info($entity_type);
@@ -85,16 +64,6 @@ class RawDKANEntityContext extends RawDKANContext implements EntityAwareInterfac
         $this->field_map[strtolower($info['label'])] = $field;
       }
     }
-  }
-
-  /**
-   * @BeforeScenario
-   */
-  public function gatherContexts(BeforeScenarioScope $scope) {
-    /** @var Environment $environment */
-    $environment = $scope->getEnvironment();
-    $this->pageContext = $environment->getContext('Drupal\DKANExtension\Context\PageContext');
-    $this->searchContext = $environment->getContext('Drupal\DKANExtension\Context\SearchAPIContext');
   }
 
   /**
@@ -384,8 +353,8 @@ class RawDKANEntityContext extends RawDKANContext implements EntityAwareInterfac
   /**
    * Do further processing after saving.
    *
-   * @param $wrapper
-   * @param $fields
+   * @param EntityDrupalWrapper $wrapper
+   * @param array $fields
    */
   public function post_save($wrapper, $fields) {
     $this->dispatchDKANHooks('AfterDKANEntityCreateScope', $wrapper, $fields);
@@ -393,10 +362,8 @@ class RawDKANEntityContext extends RawDKANContext implements EntityAwareInterfac
     // to the page array for easy navigation.
     $url = parse_url($wrapper->url->value());
     // Add the url to the page array for easy navigation.
-    $this->pageContext->addPage(array(
-      'title' => $wrapper->label(),
-      'url' => $url['path'],
-    ));
+    $page = new Page($wrapper->label(), $url['path']);
+    $this->getPageStore()->store($page);
 
     if (isset($fields['date changed'])) {
       $this->setChangedDate($wrapper, $fields['date changed']);
