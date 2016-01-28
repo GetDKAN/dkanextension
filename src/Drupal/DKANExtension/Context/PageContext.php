@@ -1,78 +1,137 @@
 <?php
 namespace Drupal\DKANExtension\Context;
 
-use Behat\Behat\Context\Context as Context;
-use Behat\Mink\Exception\UnsupportedDriverActionException as UnsupportedDriverActionException;
 use Behat\Gherkin\Node\TableNode;
-use Drupal\DrupalExtension\Context\RawDrupalContext;
+use Drupal\DKANExtension\ServiceContainer\Page;
 
 /**
  * Defines application features from the specific context.
  */
-class PageContext extends RawDrupalContext {
-
-  // Store pages to be referenced in an array.
-  protected $pages = array();
-
-  /**
-   * Add page to context.
-   *
-   * @param $page
-   */
-  public function addPage($page) {
-    $this->pages[$page['title']] = $page;
-  }
+class PageContext extends RawDKANContext {
 
   /**
    * @Given pages:
    */
   public function addPages(TableNode $pagesTable) {
     foreach ($pagesTable as $pageHash) {
-      // @todo Add some validation.
-      $this->addPage($pageHash);
+      if (!isset($pageHash['name'])) {
+        throw new \Exception('name value missing for page.');
+      }
+      if (!isset($pageHash['url'])) {
+        throw new \Exception('url value missing for page.');
+      }
+      $page = new Page($pageHash['name'], $pageHash['url']);
+      $this->getPageStore()->store($page);
     }
   }
 
   /**
    * @Given I am on (the) :page page
+   * @Given I visit (the) :page page
    */
-  public function iAmOnPage($page_title) {
-    if (isset($this->pages[$page_title])) {
-      $session = $this->getSession();
-      $url = $this->pages[$page_title]['url'];
-      $session->visit($this->locatePath($url));
-      try {
-        $code = $session->getStatusCode();
-        if ($code < 200 || $code >= 300) {
-          throw new \Exception("Page $page_title ($url) visited, but it returned a non-2XX response code of $code.");
-        }
-      } catch (UnsupportedDriverActionException $e) {
-        // Some drivers don't support status codes, namely Selenium2Driver so
-        // just drive on.
-      }
-    }
-    else {
-      throw new \Exception("Page $page_title not found in the pages array, was it added?");
-    }
+  public function givenOnPage($page) {
+    $this->visitPage($page);
   }
 
   /**
    * @Then I should be on (the) :page page
    */
-  public function assertOnPage($page_title){
-    if(!isset($this->pages[$page_title])){
-      throw new \Exception("Named page $page_title doesn't exist.");
-    }
-    $current_url = $this->getSession()->getCurrentUrl();
-    // Support relative paths when on a "base_url" page. Otherwise assume a full url.
-    $current_url = str_replace($this->getMinkParameter("base_url"), "", $current_url);
-
-    $current_url = drupal_parse_url($current_url);
-    $current_url = $current_url['path'];
-
-    $url = $this->pages[$page_title]['url'];
-    if($current_url !== $url){
-      throw new \Exception("Current page is $current_url, but $url expected.");
-    }
+  public function assertOnPage($page){
+    parent::assertOnPage($page);
   }
+
+  /**
+   * @Then The page status should be :type
+   */
+  public function assertCurrentPageCode($type) {
+    switch ($type) {
+      case 'ok':
+        $code = 200;
+        break;
+
+      case 'access denied':
+        $code = 403;
+        break;
+
+      case 'not found':
+        $code = 404;
+        break;
+
+      case 'error':
+        $code = 500;
+        break;
+    }
+
+    parent::assertCurrentPageCode($code);
+  }
+
+  /**
+   * @Given I should be able to access the :page_title page
+   */
+  public function iShouldBeAbleToAccessPage($page_title) {
+    $this->assertCanViewPage($page_title);
+  }
+
+  /**
+   * @Given I should be denied access to the :page_title page
+   */
+  public function iShouldBeDeniedToAccessPage($page_title) {
+    // Assume mean getting a 403 (Access Denied), not just missing or an error.
+    $this->assertCanViewPage($page_title, null, 403);
+  }
+
+  /**
+   * @Given The :page_title page should not be found
+   */
+  public function pageShouldBeNotFound($page_title) {
+    $this->assertCanViewPage($page_title, null, 404);
+  }
+
+  /**
+   * @Given I should be able to edit :named_entity
+   */
+  public function iShouldBeAbleToEdit($named_entity) {
+    $this->assertCanViewPage($named_entity, "edit");
+  }
+
+  /**
+   * @Given I should not be able to edit :named_entity
+   */
+  public function iShouldNotBeAbleToEdit($named_entity) {
+    // Assume mean getting a 403 (Access Denied), not just missing or an error.
+    $this->assertCanViewPage($named_entity, "edit", 403);
+  }
+
+  /**
+   * @Given I should be able to delete :named_entity
+   */
+  public function iShouldBeAbleToDelete($named_entity) {
+    // Assume mean getting a 403 (Access Denied), not just missing or an error.
+    $this->assertCanViewPage($named_entity, "delete");
+  }
+
+  /**
+   * @Given I should not be able to delete :named_entity
+   */
+  public function iShouldNotBeAbleToDelete($named_entity) {
+    // Assume mean getting a 403 (Access Denied), not just missing or an error.
+    $this->assertCanViewPage($named_entity, "delete", 403);
+  }
+
+  /**
+   * @Given I visit the edit page for :named_entity
+   */
+  public function iVisitTheEntityEditPage($named_entity) {
+    $this->visitPage($named_entity, "edit");
+  }
+
+  /**
+   * @Given I visit the delete page for :named_entity
+   */
+  public function iVisitTheEntityDeletePage($named_entity) {
+    // Assume mean getting a 403 (Access Denied), not just missing or an error.
+    $this->visitPage($named_entity, "delete");
+  }
+
+
 }

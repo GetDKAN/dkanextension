@@ -1,55 +1,216 @@
 <?php
 namespace Drupal\DKANExtension\Context;
 
+use Behat\Mink\Driver\GoutteDriver;
+use Behat\Mink\Exception\UnsupportedDriverActionException;
+use Behat\Mink\Mink;
+use Behat\Mink\Session;
+use Behat\Testwork\Environment\Environment;
+use Drupal\DKANExtension\ServiceContainer\EntityStore;
+use Drupal\DKANExtension\ServiceContainer\PageStore;
 use Drupal\DrupalExtension\Context\RawDrupalContext;
-use Drupal\DrupalExtension\Context\DrupalContext;
-use Behat\Behat\Context\SnippetAcceptingContext;
-use Behat\Mink\Exception\UnsupportedDriverActionException as UnsupportedDriverActionException;
-use Behat\Gherkin\Node\TableNode;
-use Behat\Mink\Exception\DriverException;
-use Behat\Behat\Tester\Exception\PendingException;
-use \stdClass;
+use Behat\Behat\Hook\Scope\BeforeScenarioScope;
+
 
 /**
  * Defines application features from the specific context.
  */
-class RawDKANContext extends RawDrupalContext implements SnippetAcceptingContext {
+class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
 
   /**
-   * Initializes context.
-   *
-   * Every scenario gets its own context instance.
-   * You can also pass arbitrary arguments to the
-   * context constructor through behat.yml.
+   * @var \Drupal\DKANExtension\Context\PageContext
    */
-  public function __construct() {
-    // Set the default timezone to NY
-    date_default_timezone_set('America/New_York');
+  protected $pageContext;
+  /**
+   * @var \Drupal\DKANExtension\Context\SearchAPIContext
+   */
+  protected $searchContext;
+  /**
+   * @var \Drupal\DKANExtension\ServiceContainer\EntityStore
+   */
+  protected $entityStore;
+  /**
+   * @var \Drupal\DKANExtension\ServiceContainer\PageStore
+   */
+  protected $pageStore;
+
+  /**
+   * @var Session
+   */
+  protected $fakeSession;
+
+  public function setEntityStore(EntityStore $entityStore) {
+    $this->entityStore = $entityStore;
+  }
+
+  public function getEntityStore() {
+    return $this->entityStore;
+  }
+
+  public function setPageStore(PageStore $pageStore) {
+    $this->pageStore = $pageStore;
+  }
+
+  public function getPageStore() {
+    return $this->pageStore;
   }
 
   /**
-   * Get dataset nid by title from context.
-   *
-   * @param $nodeTitle title of the node.
-   * @param $type type of nodo look for.
-   *
-   * @return Node ID or FALSE
+   * @BeforeScenario
    */
-  private function getNidByTitle($nodeTitle, $type) {
-    $context = array();
-    switch ($type) {
-      case 'dataset':
-        $context = $this->datasets;
-        break;
-      case 'resource':
-        $context = $this->resources;
-    }
+  public function gatherContexts(BeforeScenarioScope $scope) {
+    /** @var Environment $environment */
+    $environment = $scope->getEnvironment();
+    $this->searchContext = $environment->getContext('Drupal\DKANExtension\Context\SearchAPIContext');
+  }
 
-    foreach ($context as $key => $node) {
-      if ($node->title == $nodeTitle) {
-        return $key;
-      }
+  /**
+   * Check toolbar if this->user isn't working.
+   */
+  public function getCurrentUser() {
+    if ($this->user) {
+      return $this->user;
+    }
+    $session = $this->getSession();
+    $page = $session->getPage();
+    $xpath = $page->find('xpath', "//div[@class='content']/span[@class='links']/a[1]");
+    $userName = $xpath->getText();
+    $uid = db_query('SELECT uid FROM users WHERE name = :user_name', array(':user_name' => $userName))->fetchField();
+    if ($uid && $user = user_load($uid)) {
+      return $user;
     }
     return FALSE;
   }
+
+  public function visitPage($named_page, $sub_path = null) {
+
+    $page = $this->getPageStore()->retrieve($named_page);
+    if (!$page) {
+      throw new \Exception("Named page '$named_page' doesn't exist.");
+    }
+    $path = ($sub_path) ? $page->getUrl() . "/$sub_path" : $page->getUrl();
+    $session = $this->getSessionFake();
+    $session = $this->visit($path, $session);
+    $this->assertOnUrl($path);
+
+    return $session;
+  }
+
+  public function getStatusCode($session = null) {
+    if (!$session) {
+      $session = $this->getSession();
+    }
+    try {
+      return $session->getStatusCode();
+    } catch (UnsupportedDriverActionException $e) {
+      // Driver doesn't support this so we have to guess based on the page text.
+      $results = $session->getPage()->findAll('css', 'h1');
+      if (empty($results)) {
+        // No H1s?  Maybe we're on the a page like the front page the doesn't have them.
+        if(empty($session->getPage()->find('css', '#main'))) {
+          //Let's assume that's a 500 error.
+          return 500;
+        }
+      }
+      // Check each of the results.
+      foreach ($results as $h1) {
+        $title = strtolower($h1->getText());
+        if ($title == 'access denied') {
+          return 403;
+        }
+        elseif ($title == 'page not found') {
+          return 404;
+        }
+      }
+      // Otherwise assume 200.
+      return 200;
+    }
+  }
+
+  public function assertOnUrl($assert_url, $session = null){
+    if (!$session) {
+      $session = $this->getSession();
+    }
+
+    $current_url = $session->getCurrentUrl();
+    // Support relative paths when on a "base_url" page. Otherwise assume a full url.
+    $current_url = str_replace($this->getMinkParameter("base_url"), "", $current_url);
+
+    $current_url = drupal_parse_url($current_url);
+    $current_url = $current_url['path'];
+    if($current_url !== $assert_url){
+      throw new \Exception("Current page is $current_url, but $assert_url expected.");
+    }
+  }
+
+  public function assertOnPage($named_page){
+    $page = $this->getPageStore()->retrieve($named_page);
+    if (!$page) {
+      throw new \Exception("Named page '$named_page' doesn't exist.");
+    }
+    $assert_url = $page->getUrl();
+    $this->assertOnUrl($assert_url);
+  }
+
+
+  public function assertCanViewPage($named_page, $sub_path = null, $assert_code = null){
+    $session = $this->visitPage($named_page, $sub_path);
+
+    // First check that a certain status code is expected.
+    if (isset($assert_code)) {
+      if ($assert_code !== $code) {
+        throw new \Exception("Page {$session->getCurrentUrl()} code doesn't match $assert_code. CODE: $code");
+      }
+      return $code;
+    }
+
+    // Throw an exception if a non-successful code was found.
+    if ($code < 200 || $code >= 500) {
+      throw new \Exception("Page {$session->getCurrentUrl()} has an error. CODE: $code");
+    }
+    elseif ($code == 404) {
+      throw new \Exception("Page {$session->getCurrentUrl()} not found. CODE: $code");
+    }
+    elseif ($code == 403) {
+      throw new \Exception("Page {$session->getCurrentUrl()} is access denied. CODE: $code");
+    }
+    return $code;
+  }
+
+  /**
+   * @return \Behat\Mink\Session
+   */
+  public function getSessionFake() {
+    if (isset($this->fakeSession)) {
+      $session = $this->fakeSession();
+      //$session->reset();
+      return $session;
+    }
+    $driver = new GoutteDriver();
+    $session = new Session($driver);
+    $session->start();
+    $this->fakeSession = $session;
+    return $session;
+  }
+
+
+  public function visit($url, $session = null) {
+    if (!$session) {
+      $session = $this->getSession();
+    }
+    $url = $this->locatePath($url);
+    $session->visit($url);
+    return $session;
+  }
+
+  public function assertCurrentPageCode($assert_code = 200) {
+    $session = $this->getSession();
+    $code = $this->getStatusCode();
+    if ($code !== $assert_code) {
+      throw new \Exception("Page {$session->getCurrentUrl()} code doesn't match. ASSERT: $assert_code CODE: $code");
+    }
+  }
+
+
+
 }

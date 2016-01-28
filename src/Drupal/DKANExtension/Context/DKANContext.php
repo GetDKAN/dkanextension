@@ -14,7 +14,7 @@ use \stdClass;
 /**
  * Defines application features from the specific context.
  */
-class DKANContext extends DrupalContext {
+class DKANContext extends RawDKANContext {
 
   /** @var  \Drupal\DrupalExtension\Context\MinkContext */
   protected $minkContext;
@@ -125,15 +125,6 @@ class DKANContext extends DrupalContext {
     }
   }
 
-  function getCurrentUser() {
-    if (isset($this->user)) {
-      return $this->user;
-    }
-    else {
-      return false;
-    }
-  }
-
   /**
    * @Then /^I should see a gravatar image in the "([^"]*)" region$/
    */
@@ -214,7 +205,6 @@ class DKANContext extends DrupalContext {
     }
     //TODO: Consider checking for the elements that should be in the command center.
   }
-
 
   /**
    * @AfterScenario

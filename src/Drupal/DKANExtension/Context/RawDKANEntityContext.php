@@ -1,21 +1,18 @@
 <?php
 namespace Drupal\DKANExtension\Context;
 
-use Drupal\DrupalExtension\Context\RawDrupalContext;
-use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\Gherkin\Node\TableNode;
-use Behat\Behat\Hook\Scope\BeforeScenarioScope;
+use Drupal\DKANExtension\ServiceContainer\Page;
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use EntityDrupalWrapper;
 use EntityMetadataWrapperException;
-use Entity;
 use Symfony\Component\Config\Definition\Exception\Exception;
 
 
 /**
  * Defines application features from the specific context.
  */
-class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingContext {
+class RawDKANEntityContext extends RawDKANContext {
 
   // Store entities as EntityMetadataWrappers for easy property inspection.
   //protected $entities = array();
@@ -25,20 +22,6 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
   protected $bundle_key = FALSE;
   protected $field_map = array();
   protected $field_properties = array();
-
-  /**
-   * @var \Drupal\DKANExtension\Context\PageContext
-   */
-  protected $pageContext;
-  /**
-   * @var \Drupal\DKANExtension\Context\SearchAPIContext
-   */
-  protected $searchContext;
-  /**
-   * @var \Drupal\DKANExtension\Context\EntityStore
-   */
-  protected $entityStore;
-
 
   public function __construct($entity_type , $bundle, $field_map_overrides = array('published' => 'status')) {
     $entity_info = entity_get_info($entity_type);
@@ -84,17 +67,9 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
   }
 
   /**
-   * @BeforeScenario
-   */
-  public function gatherContexts(BeforeScenarioScope $scope) {
-    $environment = $scope->getEnvironment();
-    $this->entityStore = $environment->getContext('Drupal\DKANExtension\Context\EntityStore');
-    $this->pageContext = $environment->getContext('Drupal\DKANExtension\Context\PageContext');
-    $this->searchContext = $environment->getContext('Drupal\DKANExtension\Context\SearchAPIContext');
-  }
-
-  /**
    * @AfterScenario
+   *
+   * @param AfterScenarioScope $scope
    */
   public function deleteAll(AfterScenarioScope $scope) {
     $wrappers = $this->entityStore->retrieve($this->entity_type, $this->bundle);
@@ -131,9 +106,9 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    * Get Entity by name
    *
    * @param $name
-   * @return Content or FALSE
+   * @return EntityDrupalWrapper or FALSE
    */
-  private function getByName($name) {
+  public function getByName($name) {
     return $this->entityStore->retrieve_by_name($name);
   }
 
@@ -154,8 +129,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    * Takes a array of key-mapped values and creates a fresh entity
    * using the data provided. The array should correspond to the context's field_map
    *
-   * @param $entity - the array of values to create an entity from
-   * @return the stdClass entity, or FALSE if failed
+   * @return \stdClass entity, or FALSE if failed
    */
   public function new_wrapper() {
     $entity = array();
@@ -169,13 +143,13 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
   }
 
   /**
-   * @param $wrapper
-   * @param $field
+   * @param EntityDrupalWrapper $wrapper
+   * @param array $field
    * @return mixed
    * @throws \Exception
    */
-  public function apply_fields($wrapper, $field) {
-    foreach ($field as $label => $value ) {
+  public function apply_fields($wrapper, $fields) {
+    foreach ($fields as $label => $value ) {
       if(isset($this->field_map[$label]) && $this->field_map[$label] === 'status'){
         $value = $this->convertStringToBool($value);
       }
@@ -259,13 +233,13 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
             $tid = $found_term;
           }
           else {
-            throw new \Exception("Term '$term'' not found in vocabulary '$vocab_machine_name'' for field '$property'");
+            throw new \Exception("Term '$value'' not found for field '$property'");
           }
           $wrapper->$property->set($tid);
           break;
 
 
-        case 'list<taxonomy_term>':
+        case "list<taxonomy_term>":
           // Convert the tags to tids.
           $tids = array();
           foreach ($this->explode_list($value) as $term) {
@@ -273,7 +247,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
               $tids[] = $found_term;
             }
             else {
-              throw new \Exception("Term '$term'' not found in vocabulary '$vocab_machine_name'' for field '$property'");
+              throw new \Exception("Term '$term'' not found for field '$property'");
             }
           }
           $wrapper->$property->set($tids);
@@ -344,7 +318,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    * Build routine for an entity.
    *
    * @param $fields - the array of key-mapped values
-   * @return $wrapper - EntityMetadataWrapper
+   * @return EntityDrupalWrapper $wrapper - EntityMetadataWrapper
    */
   public function save($fields) {
     $wrapper = $this->new_wrapper();
@@ -365,23 +339,31 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     if (isset($fields['date changed'])) {
       unset($fields['date changed']);
     }
+    if (!isset($fields['author']) && isset($this->field_map['author'])) {
+      $field = $this->field_map['author'];
+      $user = $this->getCurrentUser();
+      if ($user) {
+        $wrapper->$field->set($user);
+      }
+    }
+    $this->dispatchDKANHooks('BeforeDKANEntityCreateScope', $wrapper, $fields);
     $this->apply_fields($wrapper, $fields);
   }
 
   /**
    * Do further processing after saving.
    *
-   * @param $wrapper
-   * @param $fields
+   * @param EntityDrupalWrapper $wrapper
+   * @param array $fields
    */
   public function post_save($wrapper, $fields) {
+    $this->dispatchDKANHooks('AfterDKANEntityCreateScope', $wrapper, $fields);
     // Remove the base url from the url and add it
     // to the page array for easy navigation.
     $url = parse_url($wrapper->url->value());
-    $this->pageContext->addPage(array(
-      'title' => $wrapper->label(),
-      'url' => $url['path'],
-    ));
+    // Add the url to the page array for easy navigation.
+    $page = new Page($wrapper->label(), $url['path']);
+    $this->getPageStore()->store($page);
 
     if (isset($fields['date changed'])) {
       $this->setChangedDate($wrapper, $fields['date changed']);
@@ -466,6 +448,28 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
         ->fields(array('timestamp' => $timestamp))
         ->condition('nid', $nid, '=')
         ->execute();
+    }
+  }
+  /*
+   * Fire off a DKAN hook.
+   *
+   * Based on RawDrupalContext::dispatchHooks().
+   *
+   * @param $scopeType
+   * @param \stdClass $entity
+   * @throws
+   */
+  protected function dispatchDKANHooks($scopeType, \EntityDrupalWrapper $wrapper, &$fields) {
+    $fullScopeClass = 'Drupal\\DKANExtension\\Hook\\Scope\\' . $scopeType;
+    $scope = new $fullScopeClass($this->getDrupal()->getEnvironment(), $this, $wrapper, $fields);
+    $callResults = $this->dispatcher->dispatchScopeHooks($scope);
+
+    // The dispatcher suppresses exceptions, throw them here if there are any.
+    foreach ($callResults as $result) {
+      if ($result->hasException()) {
+        $exception = $result->getException();
+        throw $exception;
+      }
     }
   }
 }
