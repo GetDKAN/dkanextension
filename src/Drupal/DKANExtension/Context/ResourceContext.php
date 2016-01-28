@@ -29,4 +29,20 @@ class ResourceContext extends RawDKANEntityContext{
     public function addResources(TableNode $resourcesTable){
         parent::addMultipleFromTable($resourcesTable);
     }
+
+  /**
+   * @Given :provider previews are :setting for :format_name resources
+   *
+   * Changes variables in the database to enable or disable external previews
+   */
+  public function externalPreviewsAreEnabledForFormat($provider, $setting, $format_name)
+  {
+    $format = current(taxonomy_get_term_by_name($format_name, 'format'));
+    $preview_settings = variable_get("dkan_dataset_format_previews_tid{$format->tid}", array());
+    // If $setting was "enabled," the preview is turned on. Otherwise, it's
+    // turned off.
+    $preview_settings[$provider] = ($setting == 'enabled') ? $provider : 0;
+    variable_set("dkan_dataset_format_previews_tid{$format->tid}", $preview_settings);
+  }
+
 }

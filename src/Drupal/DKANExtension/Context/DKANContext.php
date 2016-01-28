@@ -2,6 +2,7 @@
 namespace Drupal\DKANExtension\Context;
 
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
+use Behat\Mink\Driver\Selenium2Driver;
 use Drupal\DrupalExtension\Context\DrupalContext;
 use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\Mink\Exception\UnsupportedDriverActionException as UnsupportedDriverActionException;
@@ -10,6 +11,7 @@ use Behat\Mink\Exception\DriverException;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Behat\Tester\Exception\PendingException;
 use \stdClass;
+use Symfony\Component\Config\Definition\Exception\Exception;
 
 /**
  * Defines application features from the specific context.
@@ -18,6 +20,10 @@ class DKANContext extends RawDKANContext {
 
   /** @var  \Drupal\DrupalExtension\Context\MinkContext */
   protected $minkContext;
+  /** @var  \Devinci\DevinciExtension\Context\JavascriptContext */
+  protected $jsContext;
+  /** @var  \Drupal\DrupalExtension\Context\DrushContext */
+  protected $drushContext;
 
   /**
    * Initializes context.
@@ -37,6 +43,8 @@ class DKANContext extends RawDKANContext {
   public function gatherContexts(BeforeScenarioScope $scope) {
     $environment = $scope->getEnvironment();
     $this->minkContext = $environment->getContext('Drupal\DrupalExtension\Context\MinkContext');
+    $this->drushContext = $environment->getContext('Drupal\DrupalExtension\Context\DrushContext');
+    $this->jsContext = $environment->getContext('Devinci\DevinciExtension\Context\JavascriptContext');
   }
 
 
@@ -70,6 +78,9 @@ class DKANContext extends RawDKANContext {
     $xpath = "//div[@id='admin-menu']";
     // grab the element
     $element = $this->getXPathElement($xpath);
+    if (!isset($element)) {
+      throw new \Exception('The admin menu could not be found.');
+    }
   }
 
   /**
@@ -79,6 +90,9 @@ class DKANContext extends RawDKANContext {
     $xpath = "//select[@name='body[und][0][format]']//option[@value='" . $option . "']";
     // grab the element
     $element = $this->getXPathElement($xpath);
+    if (!isset($element)) {
+      throw new \Exception("The $option format option could not be found.");
+    }
   }
 
   /**
@@ -220,4 +234,445 @@ class DKANContext extends RawDKANContext {
       }
     }
   }
+
+
+  // ------------- Junk from previous FeatureContext ------------------- //
+  /**
+   * @Then /^the administrator role should have all permissions$/
+   */
+  public function theAdministratorRoleShouldHaveAllPermissions() {
+    // Get list of all permissions
+    $permissions = array();
+    foreach (module_list(FALSE, FALSE, TRUE) as $module) {
+      // Drupal 7
+      if (module_invoke($module, 'permission')) {
+        $permissions = array_merge($permissions, array_keys(module_invoke($module, 'permission')));
+      }
+    }
+    $administrator_role = user_role_load_by_name('administrator');
+    $administrator_perms = db_query("SELECT permission FROM {role_permission} WHERE rid = :admin_rid", array(':admin_rid' => $administrator_role->rid))
+      ->fetchCol();
+    foreach($permissions as $perm) {
+      if (!in_array($perm, $administrator_perms)) {
+        echo $perm;
+        throw new Exception(sprintf("Administrator role missing permission %s", $perm));
+      }
+    }
+  }
+
+  /**
+   * @Given /^I scroll to the top$/
+   */
+  public function iScrollToTheTop() {
+    $driver = $this->getSession()->getDriver();
+    // Wait two seconds for admin menu if using js.
+    if ($driver instanceof Selenium2Driver) {
+      $element = $driver.findElement(By.id("header"));
+      $actions = new Actions($driver);
+      $actions.moveToElement($element);
+      // actions.click();
+      $actions.perform();
+    }
+  }
+
+  /**
+   * @When /^I switch to the frame "([^"]*)"$/
+   */
+  public function iSwitchToTheFrame($frame) {
+    $this->getSession()->switchToIFrame($frame);
+  }
+
+  /**
+   * @Then /^I should see the "([^"]*)" element in the "([^"]*)" region$/
+   */
+  public function assertRegionElement($tag, $region) {
+    $regionObj = $this->getMink()->getRegion($region);
+    $elements = $regionObj->findAll('css', $tag);
+    if (!empty($elements)) {
+      return;
+    }
+    throw new \Exception(sprintf('The element "%s" was not found in the "%s" region on the page %s', $tag, $region, $this->getSession()->getCurrentUrl()));
+  }
+
+  /**
+   * @Given /^I switch out of all frames$/
+   */
+  public function iSwitchOutOfAllFrames() {
+    $this->getSession()->switchToIFrame();
+  }
+
+  /**
+   * @Then /^I wait for the dialog box to appear$/
+   */
+  public function iWaitForTheDialogBoxToAppear()
+  {
+    $this->getSession()->wait(2000, "jQuery('#user-login-dialog').children().length > 0");
+  }
+
+
+
+  /**
+   * Selects option in select field with specified by node title.
+   *
+   * @When /^(?:|I )select node named "(?P<option>(?:[^"]|\\")*)" from "(?P<select>(?:[^"]|\\")*)"$/
+   */
+  public function selectNodeOption($select, $option)
+  {
+    $this->drushContext->assertDrushCommandWithArgument('php-eval', "\"return db_query('SELECT nid FROM node WHERE title = \'$option\'')->fetchField();\"");
+    $option = $this->drushContext->readDrushOutput();
+    $option = trim(str_replace(array("'"), "", $option));
+    $select = $this->fixStepArgument($select);
+    $option = $this->fixStepArgument($option);
+    $this->getSession()->getPage()->selectFieldOption($select, $option);
+  }
+
+  /**
+   * Properly inputs item in field rendered by Chosen.js.
+   *
+   *
+   * @Given /^I fill in the chosen field "([^"]*)" with "([^"]*)"$/
+   */
+  public function iFillInTheChosenFieldWith($field, $value) {
+    $session = $this->getSession();
+    $field = $this->fixStepArgument($field);
+    $value = $this->fixStepArgument($value);
+    // Focus means autocoplete will actually show up.
+    $this->getSession()->getDriver()->focus('//input[@value="' . $field . '"]');
+    //$page->fillField($field, $value);
+    $this->iWaitForSeconds(1);
+    // Selects the first dropdown since there is no id or other way to
+    // reference the desired entry.
+    $title = $session->getPage()->find(
+      'xpath',
+      $session->getSelectorsHandler()->selectorToXpath('xpath', '//li[.="' . $value . '"]')
+
+    );
+    if(!isset($title)){
+      throw new \Exception(sprintf('"' . $value . '" option was not found in the chosen field.'));
+    }
+    $title->click();
+  }
+
+  /**
+   * @Given /^I click the chosen field "([^"]*)" and enter "([^"]*)"$/
+   *
+   * DEPRECATED: DONT USE. The clicking of the chosen fields to select some values
+   * didn't work well (selenium errors about the value not being visible). Commenting
+   * this out for now in case someone wants to replace it later with something that works.
+   */
+  /*public function iClickTheChosenFieldAndEnter($field, $value) {
+    $session = $this->getSession();
+    $page = $session->getPage();
+    $field = $this->fixStepArgument($field);
+    $value = $this->fixStepArgument($value);
+    // Click chosen field.
+    $field_click = $session->getPage()->find(
+      'xpath',
+      $session->getSelectorsHandler()->selectorToXpath('xpath', '//span[.="' . $field . '"]')
+
+      );
+    $field_click->click();
+    $this->iWaitForSeconds(1);
+    // Click value that now appears.
+    $title = $session->getPage()->find(
+      'xpath',
+      $session->getSelectorsHandler()->selectorToXpath('xpath', '//li[.="' . $value . '"]')
+      );
+    if(!isset($title)){
+      throw new Exception(sprintf('"' . $value . '" option was not found in the chosen field.'));
+    }
+    $title->click();
+  }*/
+
+  /**
+   * Click some text.
+   *
+   * @When /^I click on the text "([^"]*)"$/
+   */
+  public function iClickOnTheText($text) {
+    $session = $this->getSession();
+    $element = $session->getPage()->find(
+      'xpath',
+      $session->getSelectorsHandler()->selectorToXpath('xpath',
+        '//*[contains(text(), "' . $text . '")]')
+    );
+    if (NULL === $element) {
+      throw new \InvalidArgumentException(sprintf('Cannot find text: "%s"', $text));
+    }
+    $element->click();
+  }
+
+  /**
+   * Click on map icon as identified by its z-index.
+   *
+   * @Given /^I click map icon number "([^"]*)"$/
+   */
+  public function iClickMapIcon($num) {
+    $session = $this->getSession();
+    $element = $session->getPage()->find(
+      'xpath',
+      $session->getSelectorsHandler()->selectorToXpath(
+        'xpath',
+        '//div[contains(@class, "leaflet-marker-pane")]//img[' . $num . ']'
+      )
+    );
+    if (null === $element) {
+      throw new \InvalidArgumentException(sprintf('Cannot find map icon: "%s"', $num));
+    }
+    $element->click();
+  }
+
+  /**
+   * Copy of "I fill in" but doesn't escape "(".
+   *
+   * When using "I fill in" it escaped autocomplete fields node id. Just using
+   * the title wouldn't work. The following focuses on the field and selects
+   * the first dropdown.
+   *
+   * @Given /^I fill in the autocomplete field "([^"]*)" with "([^"]*)"$/
+   */
+  public function iFillInTheAutoFieldWith($field, $value) {
+    $session = $this->getSession();
+    $field = $this->fixStepArgument($field);
+    $value = $this->fixStepArgument($value);
+    $input_title = $session->getPage()->find(
+      'xpath',
+      $session->getSelectorsHandler()->selectorToXpath('xpath', '//input[@value="' . $field . '"]')
+
+    );
+    $input_title->click();
+    $this->iWaitForSeconds(2);
+    // Selects the first dropdown since there is no id or other way to
+    // reference the desired entry.
+    $title = $session->getPage()->find(
+      'xpath',
+      $session->getSelectorsHandler()->selectorToXpath('xpath', '//li[.="' . $value . '"]')
+
+    );
+    $title->click();
+  }
+
+  /**
+   * @Given /^I empty the field "([^"]*)"$/
+   */
+  public function iEmptyTheField($locator) {
+    $session = $this->getSession();
+    $page = $session->getPage();
+    $field = $page->findField($locator);
+
+    if (null === $field) {
+      throw new ElementNotFoundException(
+        $this->getSession(), 'form field', 'id|name|label|value', $locator
+      );
+    }
+
+    $field->setValue("");
+  }
+
+  /**
+   * Wait for the given number of seconds. ONLY USE FOR DEBUGGING!
+   *
+   * @Given I wait for :time second(s)
+   */
+  public function iWaitForSeconds($time) {
+    sleep($time);
+  }
+
+
+  /**
+   * Wait to click on something in case it does not appear immediately (javascript)
+   *
+   * @Given I wait and press :text
+   */
+  public function iWaitAndPress($text) {
+    $wait = $this->jsContext->maximum_wait;
+    try {
+      $found = $this->jsContext->spin(function ($context) use ($text) {
+        $context->getSession()->getPage()->pressButton($text);
+        return (TRUE);
+      }, $wait);
+      return $found;
+    }
+    catch(\Exception $e) {
+      throw new \Exception( "Couldn't find button $text within $wait seconds");
+    }
+  }
+
+
+  /**
+   * @When I attach the drupal file :arg1 to :arg2
+   *
+   * Overrides attachFileToField() in Mink context to fix but with relative
+   * path.
+   */
+  public function iAttachTheDrupalFileTo($path, $field)
+  {
+    $field = $this->fixStepArgument($field);
+
+    // Relative paths stopped working after selenium 2.44.
+    $offset = 'features/bootstrap/FeatureContext.php';
+    $dir =  __file__;
+    $test_dir = str_replace($offset, "", $dir);
+    $path = $this->getMinkParameter('files_path') . '/' . $path;
+    $this->getSession()->getPage()->attachFileToField($field, $path);
+  }
+
+  /**
+   * Check toolbar if this->user isn't working.
+   */
+  public function getCurrentUser() {
+    if ($this->user) {
+      return $this->user;
+    }
+    $session = $this->getSession();
+    $page = $session->getPage();
+    $xpath = $page->find('xpath', "//div[@class='content']/span[@class='links']/a[1]");
+    $userName = $xpath->getText();
+    $uid = db_query('SELECT uid FROM users WHERE name = :user_name', array(':user_name' =>  $userName))->fetchField();
+    if ($uid && $user = user_load($uid)) {
+      return $user;
+    }
+    return FALSE;
+  }
+
+  /**
+   * @Then I should see the list of permissions for :role role
+   */
+  public function iShouldSeePermissionsForRole($role)
+  {
+
+    $role_names = og_get_user_roles_name();
+    if ($rid = array_search($role, $role_names)) {
+      $permissions = og_role_permissions(array($rid => ''));
+      foreach(reset($permissions) as $machine_name => $perm) {
+        // Currently the permissions returned by og for a role are only the machine name and its true value,
+        // need to find a way to find the checkbox of a permission and see if it is checked
+        $search = "edit-".$rid."-".strtr($machine_name, " ", "-");
+        if(!$this->getSession()->getPage()->hasCheckedField($search)){
+          throw new \Exception("Permission $machine_name is not set for $role.");
+        }
+      }
+    }
+  }
+
+  /**
+   * @Then I should get :format content from the :button button
+   */
+  public function assertButtonReturnsFormat($format, $button){
+
+    if($button === "JSON"){
+      $button = "json view of content";
+    }
+
+    $content = $this->getSession()->getPage()->findLink($button);
+    try {
+      $file = file_get_contents($content->getAttribute("href"));
+    }catch(\Exception $e){
+      throw $e;
+    }
+    if($format === "JSON") {
+      json_decode($file);
+      if (!json_last_error() == JSON_ERROR_NONE) {
+        throw new \Exception("Not JSON format.");
+      }
+    }
+  }
+
+  /**
+   * @Then I should see the redirect button for :site
+   */
+  public function assertRedirectButton($site){
+    $page = $this->getSession()->getPage();
+
+    switch($site){
+      case 'Google+':
+        $element = $page->find('css', '.fa-google-plus-square');
+        $link = $element->getParent()->getAttribute("href");
+        $return = preg_match('#https:\/\/plus\.google\.com\/share\?url=.*dataset\/.*#', $link);
+        break;
+      case 'Twitter':
+        $element = $page->find('css', '.fa-twitter-square');
+        $link = $element->getParent()->getAttribute("href");
+        $return = preg_match('#https:\/\/twitter\.com\/share\?url=.*dataset\/.*#', $link);
+        break;
+      case 'Facebook':
+        $element = $page->find('css', '.fa-facebook-square');
+        $link = $element->getParent()->getAttribute("href");
+        $return = preg_match('#https:\/\/www\.facebook\.com\/sharer\.php.*dataset\/.*#', $link);
+        break;
+      default:
+        throw new \Exception("Not a valid site for DKAN sharing.");
+    }
+
+    if(!$return){
+      throw new \Exception("The $site redirect button is not properly configured.");
+    }
+  }
+
+  /**
+   * Returns fixed step argument (with \\" replaced back to ").
+   *
+   * @param string $argument
+   *
+   * @return string
+   */
+  public function fixStepArgument($argument)
+  {
+    return str_replace('\\"', '"', $argument);
+  }
+
+
+  /************************************/
+  /* Gravatar                         */
+  /************************************/
+
+//  /**
+//   * @Then /^I should see a gravatar link in the "([^"]*)" region$/
+//   */
+//  public function iShouldSeeAGravatarLinkInTheRegion($region)
+//  {
+////   $regionObj = $this->getMainContext()->getRegion($region);
+////    $elements = $regionObj->findAll('css', 'img');
+////    if (!empty($elements)) {
+////      foreach ($elements as $element) {
+////        if ($element->hasAttribute('src')) {
+////          $value = $element->getAttribute('src');
+////          //if (preg_match('/\/\/www\.gravatar\.com\/avatar\/.*/', $value)) {
+////            return;
+////          }
+////        }
+////      }
+////    }
+////    throw new \Exception(sprintf('The element gravatar link was not found in the "%s" region on the page %s', $region, $this->getSession()->getCurrentUrl()));
+//
+//  }
+//
+//  /**
+//   * @Then /^I should not see a gravatar link in the "([^"]*)" region$/
+//   */
+//  public function iShouldNotSeeAGravatarLinkInTheRegion($region)
+//  {
+////    $regionObj = $this->getMainContext()->getRegion($region);
+////    $elements = $regionObj->findAll('css', 'img');
+////    $match = FALSE;
+////    if (!empty($elements)) {
+////      foreach ($elements as $element) {
+////        if ($element->hasAttribute('src')) {
+////          $value = $element->getAttribute('src');
+////          if (preg_match('/\/\/www\.gravatar\.com\/avatar\/.*/', $value)) {
+////            $match = TRUE;
+////          }
+////        }
+////      }
+////    }
+////    if ($match) {
+////      throw new \Exception(sprintf('The element gravatar link was found in the "%s" region on the page %s', $region, $this->getSession()->getCurrentUrl()));
+////    }
+////    else {
+////      return;
+////    }
+//  }
+
+
+
 }
