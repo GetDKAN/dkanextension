@@ -4,6 +4,7 @@
 parameters:
   dkan.entity_store.class: Drupal\DKANExtension\ServiceContainer\EntityStore
   dkan.page_store.class: Drupal\DKANExtension\ServiceContainer\PageStore
+  dkan.listener.stores.class: Drupal\DKANExtension\Listener\StoresListener
 
   # Context initializer.
   dkan.context.initializer.class: Drupal\DKANExtension\Context\Initializer\DKANAwareInitializer
@@ -29,3 +30,11 @@ services:
       - %dkan.parameters%
     tags:
       - { name: context.initializer }
+
+  dkan.listener.stores:
+    class: %dkan.listener.stores.class%
+    calls:
+      - [ setStore,[%dkan.entity_store.class%, @dkan.entity_store]]
+      - [ setStore,[%dkan.page_store.class%, @dkan.page_store]]
+    tags:
+      - { name: event_dispatcher.subscriber, priority: 0 }

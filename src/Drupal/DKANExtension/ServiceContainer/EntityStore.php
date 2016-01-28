@@ -6,7 +6,7 @@ use Behat\Behat\Context\Context;
 /**
  * Defines application features from the specific context.
  */
-class EntityStore implements Context {
+class EntityStore implements StoreInterface {
   // Store entities as EntityMetadataWrappers for easy property inspection.
   protected $entities = array();
   protected $names = array();
@@ -92,5 +92,10 @@ class EntityStore implements Context {
 
   function names_flush() {
     $this->names = array();
+  }
+
+  function flush() {
+    $this->entities = array();
+    $this->names_flush();
   }
 }

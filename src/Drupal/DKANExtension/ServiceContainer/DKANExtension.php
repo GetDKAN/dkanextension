@@ -10,13 +10,18 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 
 class DKANExtension implements ExtensionInterface {
+
+  const DKAN_ID = 'dkan';
+
+
+
   /**
    * Returns the extension config key.
    *
    * @return string
    */
   public function getConfigKey(){
-    return 'dkan';
+    return self::DKAN_ID;
   }
 
   /**
@@ -64,9 +69,24 @@ class DKANExtension implements ExtensionInterface {
     # Override the DrupalExtension's Hook loader so we can add our own hooks.
     $container->setParameter('drupal.context.annotation.reader.class',
       'Drupal\DKANExtension\Context\Annotation\Reader');
+
+    //$this->loadStoreListener($container);
+
   }
 
   public function process(ContainerBuilder $container) {
    $i = 'test';
   }
+
+  /*private function loadStoreListener(ContainerBuilder $container)
+  {
+    $definition = new Definition('Drupal\DKANExtension\Listener\StoreListener', array(
+      new Reference(self::DKAN_ID),
+      '%dkan.page_store%',
+      '%mink.javascript_session%',
+      '%mink.available_javascript_sessions%',
+    ));
+    $definition->addTag(EventDispatcherExtension::SUBSCRIBER_TAG, array('priority' => 0));
+    $container->setDefinition('mink.listener.sessions', $definition);
+  }*/
 }
