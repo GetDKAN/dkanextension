@@ -43,7 +43,8 @@ class DKANContext extends RawDKANContext {
   public function gatherContexts(BeforeScenarioScope $scope) {
     $environment = $scope->getEnvironment();
     $this->minkContext = $environment->getContext('Drupal\DrupalExtension\Context\MinkContext');
-    $this->drushContext = $environment->getContext('Drupal\DrupalExtension\Context\DrushContext');
+    // This context needs to be registered and hasn't been up to now. Don't load if we don't need it.
+    //$this->drushContext = $environment->getContext('Drupal\DrupalExtension\Context\DrushContext');
     $this->jsContext = $environment->getContext('Devinci\DevinciExtension\Context\JavascriptContext');
   }
 
@@ -316,15 +317,15 @@ class DKANContext extends RawDKANContext {
    *
    * @When /^(?:|I )select node named "(?P<option>(?:[^"]|\\")*)" from "(?P<select>(?:[^"]|\\")*)"$/
    */
-  public function selectNodeOption($select, $option)
-  {
-    $this->drushContext->assertDrushCommandWithArgument('php-eval', "\"return db_query('SELECT nid FROM node WHERE title = \'$option\'')->fetchField();\"");
-    $option = $this->drushContext->readDrushOutput();
-    $option = trim(str_replace(array("'"), "", $option));
-    $select = $this->fixStepArgument($select);
-    $option = $this->fixStepArgument($option);
-    $this->getSession()->getPage()->selectFieldOption($select, $option);
-  }
+//  public function selectNodeOption($select, $option)
+//  {
+//    $this->drushContext->assertDrushCommandWithArgument('php-eval', "\"return db_query('SELECT nid FROM node WHERE title = \'$option\'')->fetchField();\"");
+//    $option = $this->drushContext->readDrushOutput();
+//    $option = trim(str_replace(array("'"), "", $option));
+//    $select = $this->fixStepArgument($select);
+//    $option = $this->fixStepArgument($option);
+//    $this->getSession()->getPage()->selectFieldOption($select, $option);
+//  }
 
   /**
    * Properly inputs item in field rendered by Chosen.js.
