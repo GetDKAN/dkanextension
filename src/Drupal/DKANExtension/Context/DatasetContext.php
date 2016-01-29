@@ -3,9 +3,7 @@ namespace Drupal\DKANExtension\Context;
 
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Gherkin\Node\TableNode;
-use SearchApiIndex;
-use \stdClass;
-use Symfony\Component\Console\Helper\Table;
+use SearchApiQuery;
 
 /**
  * Defines application features from the specific context.
@@ -87,7 +85,7 @@ class DatasetContext extends RawDKANEntityContext {
     }
 
     if ($count !== $number) {
-      throw new Exception("Couldn't find $number datasets on the page. Found $count.");
+      throw new \Exception("Couldn't find $number datasets on the page. Found $count.");
     }
 
     switch($orderby){
@@ -98,7 +96,7 @@ class DatasetContext extends RawDKANEntityContext {
         $orderby = 'title';
         break;
       default:
-        throw new Exception("Ordering by '$orderby' is not supported by this step.");
+        throw new \Exception("Ordering by '$orderby' is not supported by this step.");
     }
 
     $index = search_api_index_load('datasets');
@@ -111,14 +109,14 @@ class DatasetContext extends RawDKANEntityContext {
       ->execute();
     $count = count($results['results']);
     if (count($results['results']) !== $number) {
-      throw new Exception("Couldn't find $number datasets in the database. Found $count.");
+      throw new \Exception("Couldn't find $number datasets in the database. Found $count.");
     }
 
     foreach($results['results'] as $nid => $result) {
       $dataset = node_load($nid);
       $found_title = array_shift($dataset_list);
       if ($found_title !== $dataset->title) {
-        throw new Exception("Does not match order of list, $found_title was next on page but expected $dataset->title");
+        throw new \Exception("Does not match order of list, $found_title was next on page but expected $dataset->title");
       }
     }
   }

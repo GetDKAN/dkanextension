@@ -10,6 +10,7 @@
 
 namespace Drupal\DKANExtension\Listener;
 
+use Behat\Behat\EventDispatcher\Event\AfterScenarioTested;
 use Drupal\DKANExtension\ServiceContainer\StoreInterface;
 use Behat\Testwork\EventDispatcher\Event\ExerciseCompleted;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -36,14 +37,15 @@ class StoresListener implements EventSubscriberInterface
   public static function getSubscribedEvents()
   {
       return array(
-          ExerciseCompleted::AFTER => array('flushStores', -10)
+          ExerciseCompleted::AFTER => array('flushStores', -10),
+          AfterScenarioTested::AFTER => array('flushStores', -10),
       );
   }
 
   /**
    * Stops all started Mink sessions.
    */
-  public function tearDownMinkSessions()
+  public function flushStores()
   {
       foreach($this->stores as $store) {
           $store->flush();
