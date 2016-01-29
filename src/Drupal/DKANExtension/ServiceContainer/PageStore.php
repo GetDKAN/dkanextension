@@ -1,7 +1,7 @@
 <?php
 namespace Drupal\DKANExtension\ServiceContainer;
 
-use Behat\Behat\Context\Context;
+use \Drupal\DKANExtension\ServiceContainer\StoreInterface;
 
 
 class Page {
@@ -34,7 +34,7 @@ class Page {
 /**
  * Store urls or paths as named elements for easy reuse.
  */
-class PageStore {
+class PageStore implements StoreInterface {
 
   protected $pages = array();
 

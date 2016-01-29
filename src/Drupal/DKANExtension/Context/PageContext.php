@@ -36,14 +36,14 @@ class PageContext extends RawDKANContext {
   /**
    * @Then I should be on (the) :page page
    */
-  public function assertOnPage($page){
+  public function iShouldBeOnPage($page){
     parent::assertOnPage($page);
   }
 
   /**
    * @Then The page status should be :type
    */
-  public function assertCurrentPageCode($type) {
+  public function pageStatusShouldBe($type) {
     switch ($type) {
       case 'ok':
         $code = 200;
