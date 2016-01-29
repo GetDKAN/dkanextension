@@ -89,7 +89,7 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
       throw new \Exception("Named page '$named_page' doesn't exist.");
     }
     $path = ($sub_path) ? $page->getUrl() . "/$sub_path" : $page->getUrl();
-    $session = $this->getSessionFake();
+    $session = $this->getSession();
     $session = $this->visit($path, $session);
     $this->assertOnUrl($path);
 
@@ -135,9 +135,9 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
     $current_url = $session->getCurrentUrl();
     // Support relative paths when on a "base_url" page. Otherwise assume a full url.
     $current_url = str_replace($this->getMinkParameter("base_url"), "", $current_url);
-
-    $current_url = drupal_parse_url($current_url);
-    $current_url = $current_url['path'];
+    // This code was setup to ignore url get params, but we are using them for datasets, so ignore this for now.
+    //$current_url = drupal_parse_url($current_url);
+    //$current_url = $current_url['path'];
     if($current_url !== $assert_url){
       throw new \Exception("Current page is $current_url, but $assert_url expected.");
     }
