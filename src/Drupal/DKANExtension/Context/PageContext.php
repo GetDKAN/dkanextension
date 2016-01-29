@@ -133,5 +133,17 @@ class PageContext extends RawDKANContext {
     $this->visitPage($named_entity, "delete");
   }
 
+  /**
+   * @Then I should see :text in the RSS feed
+   */
+  public function iVisitTheRssFeed($text) {
+    $xml = $this->getSession()->getDriver()->getContent();;
+    if (strpos($xml, $text) !== false) {
+      return TRUE;
+    }
+    else {
+      return FALSE;
+    }
+  }
 
 }
