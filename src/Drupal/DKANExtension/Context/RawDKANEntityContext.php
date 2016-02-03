@@ -82,12 +82,18 @@ class RawDKANEntityContext extends RawDKANContext {
       // (or a bool that confirms it's deleted)
 
       $entities_to_delete = entity_load($this->entity_type, array($wrapper->getIdentifier()));
-
-      if (!empty($entities_to_delete)){
-        foreach ($entities_to_delete as $entity_to_delete) {
-          $entity_to_delete = entity_metadata_wrapper($this->entity_type, $entity_to_delete);
-          entity_delete($this->entity_type, $entity_to_delete->getIdentifier());
+      try {
+        if (is_array($entities_to_delete)) {
+          foreach ($entities_to_delete as $entity_to_delete) {
+            $entity_to_delete = entity_metadata_wrapper($this->entity_type, $entity_to_delete);
+            @entity_delete($this->entity_type, $entity_to_delete->getIdentifier());
+          }
         }
+      }
+      catch(\Exception $e) {
+        $title = (isset($wrapper->title)) ? $wrapper->title : "--Title Missing--";
+        print "[Exception] There was an exception while trying to delete an entity during teardown. "
+          . "Entity '$title' had exception: {$e->getMessage()}";
       }
       $wrapper->clear();
     }
