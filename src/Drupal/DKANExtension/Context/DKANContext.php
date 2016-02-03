@@ -268,11 +268,7 @@ class DKANContext extends RawDKANContext {
     $driver = $this->getSession()->getDriver();
     // Wait two seconds for admin menu if using js.
     if ($driver instanceof Selenium2Driver) {
-      $element = $driver.findElement(By.id("header"));
-      $actions = new Actions($driver);
-      $actions.moveToElement($element);
-      // actions.click();
-      $actions.perform();
+      $this->getSession()->executeScript('window.scrollTo(0,0);');
     }
   }
 
