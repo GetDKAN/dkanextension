@@ -68,18 +68,8 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
    * Check toolbar if this->user isn't working.
    */
   public function getCurrentUser() {
-    if ($this->user) {
-      return $this->user;
-    }
-    $session = $this->getSession();
-    $page = $session->getPage();
-    $xpath = $page->find('xpath', "//div[@class='content']/span[@class='links']/a[1]");
-    $userName = $xpath->getText();
-    $uid = db_query('SELECT uid FROM users WHERE name = :user_name', array(':user_name' => $userName))->fetchField();
-    if ($uid && $user = user_load($uid)) {
-      return $user;
-    }
-    return FALSE;
+    // Rely on DrupalExtension to keep track of the current user.
+    return $this->user;
   }
 
   public function visitPage($named_page, $sub_path = null) {
