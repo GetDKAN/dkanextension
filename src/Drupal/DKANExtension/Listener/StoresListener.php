@@ -10,7 +10,8 @@
 
 namespace Drupal\DKANExtension\Listener;
 
-use Behat\Behat\EventDispatcher\Event\AfterScenarioTested;
+use Behat\Behat\EventDispatcher\Event\ScenarioTested;
+use Behat\Behat\EventDispatcher\Event\ExampleTested;
 use Drupal\DKANExtension\ServiceContainer\StoreInterface;
 use Behat\Testwork\EventDispatcher\Event\ExerciseCompleted;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -38,7 +39,8 @@ class StoresListener implements EventSubscriberInterface
   {
       return array(
           ExerciseCompleted::AFTER => array('flushStores', -10),
-          AfterScenarioTested::AFTER => array('flushStores', -10),
+          ScenarioTested::AFTER => array('flushStores', -10),
+          ExampleTested::AFTER => array('flushStores', -10),
       );
   }
 
