@@ -18,12 +18,8 @@ use Symfony\Component\Config\Definition\Exception\Exception;
  */
 class DKANContext extends RawDKANContext {
 
-  /** @var  \Drupal\DrupalExtension\Context\MinkContext */
-  protected $minkContext;
-  /** @var  \Devinci\DevinciExtension\Context\JavascriptContext */
-  protected $jsContext;
-  /** @var  \Drupal\DrupalExtension\Context\DrushContext */
-  protected $drushContext;
+
+
 
   /**
    * Initializes context.
@@ -35,17 +31,6 @@ class DKANContext extends RawDKANContext {
   public function __construct() {
     // Set the default timezone to NY
     date_default_timezone_set('America/New_York');
-  }
-
-  /**
-   * @BeforeScenario
-   */
-  public function gatherContexts(BeforeScenarioScope $scope) {
-    $environment = $scope->getEnvironment();
-    $this->minkContext = $environment->getContext('Drupal\DrupalExtension\Context\MinkContext');
-    // This context needs to be registered and hasn't been up to now. Don't load if we don't need it.
-    //$this->drushContext = $environment->getContext('Drupal\DrupalExtension\Context\DrushContext');
-    $this->jsContext = $environment->getContext('Devinci\DevinciExtension\Context\JavascriptContext');
   }
 
 
@@ -512,24 +497,6 @@ class DKANContext extends RawDKANContext {
     $test_dir = str_replace($offset, "", $dir);
     $path = $this->getMinkParameter('files_path') . '/' . $path;
     $this->getSession()->getPage()->attachFileToField($field, $path);
-  }
-
-  /**
-   * Check toolbar if this->user isn't working.
-   */
-  public function getCurrentUser() {
-    if ($this->user) {
-      return $this->user;
-    }
-    $session = $this->getSession();
-    $page = $session->getPage();
-    $xpath = $page->find('xpath', "//div[@class='content']/span[@class='links']/a[1]");
-    $userName = $xpath->getText();
-    $uid = db_query('SELECT uid FROM users WHERE name = :user_name', array(':user_name' =>  $userName))->fetchField();
-    if ($uid && $user = user_load($uid)) {
-      return $user;
-    }
-    return FALSE;
   }
 
   /**

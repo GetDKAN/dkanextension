@@ -17,6 +17,12 @@ use Behat\Behat\Hook\Scope\BeforeScenarioScope;
  */
 class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
 
+  /** @var  \Drupal\DrupalExtension\Context\MinkContext */
+  protected $minkContext;
+
+  /** @var  \Devinci\DevinciExtension\Context\JavascriptContext */
+  protected $jsContext;
+
   /**
    * @var \Drupal\DKANExtension\Context\PageContext
    */
@@ -33,7 +39,10 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
    * @var \Drupal\DKANExtension\ServiceContainer\PageStore
    */
   protected $pageStore;
-
+  /**
+   * @var  \Drupal\DrupalExtension\Context\DrupalContext
+   */
+  protected $drupalContext;
   /**
    * @var Session
    */
@@ -62,14 +71,21 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
     /** @var Environment $environment */
     $environment = $scope->getEnvironment();
     $this->searchContext = $environment->getContext('Drupal\DKANExtension\Context\SearchAPIContext');
+    $this->minkContext = $environment->getContext('Drupal\DrupalExtension\Context\MinkContext');
+    // This context needs to be registered and hasn't been up to now. Don't load if we don't need it.
+    //$this->drushContext = $environment->getContext('Drupal\DrupalExtension\Context\DrushContext');
+    $this->jsContext = $environment->getContext('Devinci\DevinciExtension\Context\JavascriptContext');
+    $this->drupalContext = $environment->getContext('Drupal\DrupalExtension\Context\DrupalContext');
+
   }
 
+
   /**
-   * Check toolbar if this->user isn't working.
+   * Get the currently logged in user.
    */
   public function getCurrentUser() {
     // Rely on DrupalExtension to keep track of the current user.
-    return $this->user;
+    return $this->drupalContext->user;
   }
 
   public function visitPage($named_page, $sub_path = null) {
