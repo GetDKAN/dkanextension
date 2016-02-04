@@ -137,6 +137,13 @@ class RawDKANEntityContext extends RawDKANContext {
       $entity[$this->bundle_key] = $this->bundle;
     }
     $entity = entity_create($this->entity_type, $entity);
+
+    // Entity API doesn't automatically apply node settings like revision,
+    // status, promote, etc.
+    // See http://drupal.stackexchange.com/questions/115710/why-entity-metadata-wrapper-save-doesnt-update-nodes-revision
+    if ($this->entity_type == 'node') {
+      node_object_prepare($entity);
+    }
     $wrapper = entity_metadata_wrapper($this->entity_type, $entity);
 
     return $wrapper;
@@ -331,10 +338,11 @@ class RawDKANEntityContext extends RawDKANContext {
    /**
     * Do further processing after saving.
     *
-    * @param $wrapper
+    * @param EntityDrupalWrapper $wrapper
     * @param $fields
     */
   public function pre_save($wrapper, $fields) {
+
     // Update the changed date after the entity has been saved.
     if (isset($fields['date changed'])) {
       unset($fields['date changed']);
