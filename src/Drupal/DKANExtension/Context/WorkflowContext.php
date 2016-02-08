@@ -13,15 +13,22 @@ class WorkflowContext extends RawDKANContext {
   /**
    * @Given I update the moderation state of :named_entity to :state
    * @Given I update the moderation state of :named_entity to :state on date :date
+   * @Given :workflow_user updates the moderation state of :named_entity to :state
+   * @Given :workflow_user updates the moderation state of :named_entity to :state on date :date
    *
    * Transition a Moderated Node from one state to another.
    *
+   * @param String|null $user The string of the username.
    * @param String $named_entity A named entity stored in the entity store.
    * @param String $state The state that you want to transition to.
    * @param String|null $date A valid php datetime string. Supports relative dates.
    * @throws \Exception
    */
-  public function transitionModerationState($named_entity, $state, $date = null) {
+  public function transitionModerationState($workflow_user=null, $named_entity, $state, $date = null) {
+    global $user;
+
+    // Save the original user to set it back later
+    $global_user = $user;
 
     $node = $this->getModerationNode($named_entity);
 
@@ -32,23 +39,35 @@ class WorkflowContext extends RawDKANContext {
       throw new \Exception("State '$state' is not available. All possible states are [$possible_states].");
     }
 
-    $current_user = $this->getCurrentUser();
+    $current_user = ($workflow_user) ? user_load_by_name($workflow_user) : $this->getCurrentUser();
     if (!$current_user) {
       throw new \Exception("No user is logged in.");
     }
 
-    $my_revision = $node->workbench_moderation['my_revision'];
-    $next_states = workbench_moderation_states_next($my_revision->state, $current_user, $node);
-    if (empty($next_states)) {
-      $next_states = array();
-    }
-    if (!isset($next_states[$state_key])) {
-      $next_states = implode(", ", $next_states);
-      throw new \Exception("State '$possible_states[$state_key]' is not available to transition to. Transitions available to user '$current_user->name' are [$next_states]");
-    }
+    $my_revision = $node->workbench_moderation['my_revision'];;
+    $state_machine_name = array_search($state, $possible_states);
 
-    // This function actually updates the transition.
-    workbench_moderation_moderate($node, $state_key, $current_user->uid);
+    // If node is moderated to the same state but with different time, then the moderation isn't performed but the time is updated.
+    if($my_revision->state != $state_machine_name) {
+      $next_states = workbench_moderation_states_next($my_revision->state, $current_user, $node);
+      if (empty($next_states)) {
+        $next_states = array();
+      }
+      if (!isset($next_states[$state_key])) {
+        $next_states = implode(", ", $next_states);
+        throw new \Exception("State '$possible_states[$state_key]' is not available to transition to. Transitions available to user '$current_user->name' are [$next_states]");
+      }
+
+      // Change global user to the current user in order to allow
+      // workflow moderation to get the right user.
+      $user = $current_user;
+
+      // This function actually updates the transition.
+      workbench_moderation_moderate($node, $state_key, $current_user->uid);
+
+      // Back global user to the original user. Probably an anonymous.
+      $user = $global_user;
+    }
 
     // If a specific date is requested, then updated it after the fact.
     if (isset($date)) {
@@ -65,6 +84,7 @@ class WorkflowContext extends RawDKANContext {
         ->condition('vid', $node->vid, '=')
         ->execute();
     }
+
   }
 
   /**
