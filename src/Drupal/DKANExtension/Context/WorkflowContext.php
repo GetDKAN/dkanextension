@@ -12,59 +12,43 @@ class WorkflowContext extends RawDKANContext {
 
   /**
    * @Given I update the moderation state of :named_entity to :state
-   * @Given I update the moderation state of :named_entity to :state on date :date
    *
    * Transition a Moderated Node from one state to another.
    *
    * @param String $named_entity A named entity stored in the entity store.
    * @param String $state The state that you want to transition to.
-   * @param String|null $date A valid php datetime string. Supports relative dates.
    * @throws \Exception
    */
-  public function transitionModerationState($named_entity, $state, $date = null) {
-
-    $node = $this->getModerationNode($named_entity);
-
-    $possible_states = workbench_moderation_state_labels();
-    $state_key = array_search($state, $possible_states);
-    if (!$state_key) {
-      $possible_states = implode(", ", $possible_states);
-      throw new \Exception("State '$state' is not available. All possible states are [$possible_states].");
+  public function transitionModerationState($named_entity, $state) {
+    $session = $this->getSession();
+    $page = $session->getPage();
+    switch ($state) {
+      // I want to move this to draft then I should click in a Reject button in
+      // the Needs Review page.
+      case 'Draft':
+        $tab = $this->getPageStore()->retrieve('Needs Review');
+        $button = 'Reject';
+        break;
+      // I want to move this to Needs Review then I should click in a Submit for Review
+      // button in the Draft page.
+      case 'Needs Review':
+        $tab = $this->getPageStore()->retrieve('My Drafts');
+        $button = 'Submit for Review';
+        break;
+      // I want to move this to Published then I should click in a Publish
+      // button in the Needs Review page.
+      case 'Published':
+        $tab = $this->getPageStore()->retrieve('Needs Review');
+        $button = 'Publish';
+        break;
     }
 
-    $current_user = $this->getCurrentUser();
-    if (!$current_user) {
-      throw new \Exception("No user is logged in.");
+    $this->visit($tab->getUrl());
+    $submit = $page->find('xpath', '//div[contains(@class,"item-content") and contains(.,"' . $named_entity . '")]/span/a[contains(.,"' . $button . '")]');
+    if(null === $submit) {
+      throw new \Exception("Couldn't find the button '$button' for the node '$node'");
     }
-
-    $my_revision = $node->workbench_moderation['my_revision'];
-    $next_states = workbench_moderation_states_next($my_revision->state, $current_user, $node);
-    if (empty($next_states)) {
-      $next_states = array();
-    }
-    if (!isset($next_states[$state_key])) {
-      $next_states = implode(", ", $next_states);
-      throw new \Exception("State '$possible_states[$state_key]' is not available to transition to. Transitions available to user '$current_user->name' are [$next_states]");
-    }
-
-    // This function actually updates the transition.
-    workbench_moderation_moderate($node, $state_key, $current_user->uid);
-
-    // If a specific date is requested, then updated it after the fact.
-    if (isset($date)) {
-      $timestamp = strtotime($date, REQUEST_TIME);
-      if (!$timestamp) {
-        throw new \Exception("Error creating datetime from string '$date'");
-      }
-
-      db_update('workbench_moderation_node_history')
-        ->fields(array(
-          'stamp' => $timestamp,
-        ))
-        ->condition('nid', $node->nid, '=')
-        ->condition('vid', $node->vid, '=')
-        ->execute();
-    }
+    $submit->click();
   }
 
   /**
