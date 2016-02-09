@@ -328,8 +328,11 @@ class RawDKANEntityContext extends RawDKANContext {
    * @return EntityDrupalWrapper $wrapper - EntityMetadataWrapper
    */
   public function save($fields) {
+    $user = $this->getCurrentUser();
+    $GLOBALS['user'] = $user;
     $wrapper = $this->new_wrapper();
     $this->pre_save($wrapper, $fields);
+    $wrapper->revision->set(1);
     $wrapper->save();
     $this->post_save($wrapper, $fields);
     return $wrapper;
