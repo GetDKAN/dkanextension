@@ -8,6 +8,8 @@ use \stdClass;
  */
 class WorkflowContext extends RawDKANContext {
 
+  protected $old_global_user;
+
   /**
    * @Given I update the moderation state of :named_entity to :state
    * @Given I update the moderation state of :named_entity to :state on date :date
@@ -129,6 +131,45 @@ class WorkflowContext extends RawDKANContext {
     workbench_moderation_node_data($node);
 
     return $node;
+  }
+
+  /**
+   * @beforeDKANEntityCreate
+   */
+  public function setGlobalUserBeforeEntity(\Drupal\DKANExtension\Hook\Scope\BeforeDKANEntityCreateScope $scope) {
+    // Don't do anything if workbench isn't enabled or this isn't a node.
+    $wrapper = $scope->getEntity();
+    if (!function_exists('workbench_moderation_moderate_node_types') || $wrapper->type() !== 'node'){
+      return;
+    }
+    $types = workbench_moderation_moderate_node_types();
+    $node_type = $wrapper->getBundle();
+
+    // Also don't do anything if this isn't a moderation type.
+    if (!in_array($node_type, $types)) {
+      return;
+    }
+
+    // IF the author is set (there was a logged in user or it was set during creation)
+    // See RawDKANEntity::pre_save()
+    if (isset($wrapper->author)) {
+      // Then set the global user so that stupid workbench is happy.
+      global $user;
+      // Save a backup of the user (should be anonymous)
+      $this->old_global_user = $user;
+      $user = $wrapper->author->value();
+    }
+  }
+
+  /**
+   * @afterDKANEntityCreate
+   */
+  public function removeGlobalUserAfterEntity(\Drupal\DKANExtension\Hook\Scope\AfterDKANEntityCreateScope $scope) {
+    // After we've created the entity, set it back the the old global user (anon) so it doesn't pollute other things.
+    if (isset($this->old_global_user)) {
+      global $user;
+      $user = $this->old_global_user;
+    }
   }
 }
 
