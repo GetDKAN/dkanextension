@@ -8,7 +8,7 @@ namespace Drupal\DKANExtension\Hook\Scope;
 use Behat\Testwork\Hook\Scope\HookScope;
 use Behat\Behat\Context\Context;
 use Behat\Testwork\Environment\Environment;
-use Entity;
+use EntityDrupalWrapper;
 
 /**
  * Represents an Entity hook scope.
@@ -33,7 +33,7 @@ abstract class DKANEntityScope implements HookScope {
   /**
    * Entity object.
    *
-   * @var Entity
+   * @var EntityDrupalWrapper
    */
   private $entity;
 
