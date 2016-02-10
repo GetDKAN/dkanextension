@@ -57,8 +57,8 @@ class MailContext extends RawDrupalContext implements SnippetAcceptingContext {
   }
 
   /**
-   * @Then user :username should receive an email
-   * @Then user :username should receive an email containing :content
+   * @Then (the) user :username should receive an email
+   * @Then (the) user :username should receive an email containing :content
    */
   public function userShouldReceiveAnEmail($username, $content = '')
   {
@@ -120,7 +120,7 @@ class MailContext extends RawDrupalContext implements SnippetAcceptingContext {
   }
 
   /**
-   *  @Then the user :username should not receive an email
+   *  @Then (the) user :username should not receive an email
    */
   public function userShouldNotReceiveAnEmail($username)
   {
@@ -157,5 +157,15 @@ class MailContext extends RawDrupalContext implements SnippetAcceptingContext {
         return TRUE;
       }
       throw new \Exception('Did not find expected content in message body or subject.');
+  }
+
+  /**
+   * @Given the email queue is cleared
+   *
+   * This step is useful to clear the email queue between steps if needed.
+   */
+  public function theEmailQueueIsCleared()
+  {
+    $this->flushMailSystem();
   }
 }
