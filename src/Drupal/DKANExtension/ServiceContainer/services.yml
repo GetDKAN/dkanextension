@@ -25,8 +25,8 @@ services:
   dkan.context.initializer:
     class: %dkan.context.initializer.class%
     arguments:
-      - @dkan.entity_store
-      - @dkan.page_store
+      - '@dkan.entity_store'
+      - '@dkan.page_store'
       - %dkan.parameters%
     tags:
       - { name: context.initializer }
