@@ -15,26 +15,26 @@ services:
 
   # Register the EntityStore class as a Service.
   dkan.entity_store:
-    class: %dkan.entity_store.class%
+    class: '%dkan.entity_store.class%'
 
   # Register the EntityStore class as a Service.
   dkan.page_store:
-    class: %dkan.page_store.class%
+    class: '%dkan.page_store.class%'
 
   # Set our Initializer class so we can inject EntityStore into each EntityAware Context.
   dkan.context.initializer:
-    class: %dkan.context.initializer.class%
+    class: '%dkan.context.initializer.class%'
     arguments:
-      - @dkan.entity_store
-      - @dkan.page_store
-      - %dkan.parameters%
+      - '@dkan.entity_store'
+      - '@dkan.page_store'
+      - '%dkan.parameters%'
     tags:
       - { name: context.initializer }
 
   dkan.listener.stores:
-    class: %dkan.listener.stores.class%
+    class: '%dkan.listener.stores.class%'
     calls:
-      - [ setStore,[%dkan.entity_store.class%, @dkan.entity_store]]
-      - [ setStore,[%dkan.page_store.class%, @dkan.page_store]]
+      - [ setStore,['%dkan.entity_store.class%', '@dkan.entity_store']]
+      - [ setStore,['%dkan.page_store.class%', '@dkan.page_store']]
     tags:
       - { name: event_dispatcher.subscriber, priority: 0 }
