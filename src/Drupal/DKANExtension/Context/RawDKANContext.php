@@ -162,7 +162,7 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
   public function assertCanViewPage($named_page, $sub_path = null, $assert_code = null){
     $session = $this->visitPage($named_page, $sub_path);
     $code = $this->getStatusCode();
-    
+
     // First check that a certain status code is expected.
     if (isset($assert_code)) {
       if ($assert_code !== $code) {
@@ -219,5 +219,34 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
   }
 
 
+  public function isRemoteFile($file) {
+    return filter_var($file, FILTER_VALIDATE_URL);
+  }
+
+  public function assertRemoteFileExists($file) {
+    $ch = curl_init($file);
+    curl_setopt($ch, CURLOPT_NOBODY, true);
+    curl_exec($ch);
+    $retcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($retcode !== 200) {
+      throw new \Exception("Remote file {$file} doesn't exists");
+    }
+  }
+
+  public function getFile($file) {
+    if($this->isRemoteFile($file)) {
+      $this->assertRemoteFileExists($file);
+      $temp = tempnam('', 'WebDriverZip');
+      file_put_contents($temp, file_get_contents($file));
+      $file = $temp;
+    }
+
+    if (empty($file)) {
+      throw new Exception('Path could not be empty');
+    }
+    return $file;
+  }
 
 }
