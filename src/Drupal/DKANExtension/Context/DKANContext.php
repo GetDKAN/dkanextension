@@ -490,11 +490,6 @@ class DKANContext extends RawDKANContext {
   public function iAttachTheDrupalFileTo($path, $field)
   {
     $field = $this->fixStepArgument($field);
-
-    // Relative paths stopped working after selenium 2.44.
-    $offset = 'features/bootstrap/FeatureContext.php';
-    $dir =  __file__;
-    $test_dir = str_replace($offset, "", $dir);
     $path = $this->getMinkParameter('files_path') . '/' . $path;
     $this->getSession()->getPage()->attachFileToField($field, $path);
   }
@@ -509,11 +504,6 @@ class DKANContext extends RawDKANContext {
     $page = $session->getPage();
     $session->executeScript('jQuery(".file-resup-wrapper input").show()');
     $session->executeScript('jQuery(".file-resup-wrapper input[name=\'' . $field . '\']").parent().find("input[type=\'file\']").attr("id", "' . $field . '")');
-
-    // Relative paths stopped working after selenium 2.44.
-    $offset = 'features/bootstrap/FeatureContext.php';
-    $dir =  __file__;
-    $test_dir = str_replace($offset, "", $dir);
     $path = $this->getMinkParameter('files_path') . '/' . $path;
     $session->getPage()->attachFileToField($field, $path);
   }
