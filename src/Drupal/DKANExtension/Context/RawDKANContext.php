@@ -162,7 +162,7 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
   public function assertCanViewPage($named_page, $sub_path = null, $assert_code = null){
     $session = $this->visitPage($named_page, $sub_path);
     $code = $this->getStatusCode();
-    
+
     // First check that a certain status code is expected.
     if (isset($assert_code)) {
       if ($assert_code !== $code) {
@@ -217,7 +217,5 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
       throw new \Exception("Page {$session->getCurrentUrl()} code doesn't match. ASSERT: $assert_code CODE: $code");
     }
   }
-
-
 
 }
