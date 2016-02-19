@@ -490,7 +490,7 @@ class DKANContext extends RawDKANContext {
   public function iAttachTheDrupalFileTo($path, $field)
   {
     $field = $this->fixStepArgument($field);
-    $path =  $this->getFile($path);
+    $path = $this->getMinkParameter('files_path') . '/' . $path;
     $this->getSession()->getPage()->attachFileToField($field, $path);
   }
 
@@ -499,7 +499,7 @@ class DKANContext extends RawDKANContext {
    */
   public function iAttachTheDrupalFileUsingFileResup($path, $field)
   {
-    $path = $this->getFile($path);
+    $path = $this->getMinkParameter('files_path') . '/' . $path;
     $field = $this->fixStepArgument($field);
     $session = $this->getSession();
     $page = $session->getPage();
