@@ -128,8 +128,6 @@ class DatasetContext extends RawDKANEntityContext {
     $add_button = $this->getXPathElement("//fieldset[@class='widget-preview panel panel-default'][3]//a");
     $add_button->click();
   }
-}
-
 
   /**
    * @When I empty the resources field :locator
@@ -193,3 +191,4 @@ class DatasetContext extends RawDKANEntityContext {
     );
     $title->click();
   }
+}
