@@ -24,6 +24,7 @@ class DatasetContext extends RawDKANEntityContext {
     parent::gatherContexts($scope);
     $environment = $scope->getEnvironment();
     $this->groupContext = $environment->getContext('Drupal\DKANExtension\Context\GroupContext');
+    $this->dkanContext = $environment->getContext('Drupal\DKANExtension\Context\DKANContext');
   }
 
 
@@ -138,8 +139,6 @@ class DatasetContext extends RawDKANEntityContext {
     $session = $this->getSession();
     $page = $session->getPage();
 
-    $locator = $this->fixStepArgument($locator);
-
     $field = $page->find('xpath', '//div[@id="' . $locator . '"]');
     if ($field === NULL) {
       throw new \InvalidArgumentException(sprintf('Cannot find chosen field: "%s"', $locator));
@@ -163,9 +162,6 @@ class DatasetContext extends RawDKANEntityContext {
     $session = $this->getSession();
     $page = $session->getPage();
 
-    $field = $this->fixStepArgument($field);
-    $value = $this->fixStepArgument($value);
-
     $element = $page->findField($field);
     if (!$element) {
       throw new ElementNotFoundException($session, NULL, 'named', $field);
@@ -183,7 +179,7 @@ class DatasetContext extends RawDKANEntityContext {
     // Re-add last char.
     $session->getDriver()->keyDown($element->getXpath(), $last_char);
     $session->getDriver()->keyUp($element->getXpath(), $last_char);
-    $this->iWaitForSeconds(5);
+    $this->dkanContext->iWaitForSeconds(5);
 
     $title = $page->find(
       'xpath',
