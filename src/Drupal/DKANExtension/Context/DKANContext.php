@@ -319,7 +319,8 @@ class DKANContext extends RawDKANContext {
     $field = $this->fixStepArgument($field);
     $value = $this->fixStepArgument($value);
     // Focus means autocoplete will actually show up.
-    $this->getSession()->getDriver()->focus('//input[@value="' . $field . '"]');
+    $xpath = '//div[@id="'. $field . '"]//input';
+    $this->getSession()->getDriver()->focus($xpath);
     //$page->fillField($field, $value);
     $this->iWaitForSeconds(1);
     // Selects the first dropdown since there is no id or other way to
