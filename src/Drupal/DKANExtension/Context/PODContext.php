@@ -20,11 +20,11 @@ class PODContext extends RawDKANContext {
  }
 
   /**
-   * @When I should see valid data.json on the /data.json page
+   * @When I should see valid data.json
    */
-  public function iShouldSeeValidDatasjonOnTheDatajsonPage() {
-    $session = $this->getSession();
-    $session = $this->visit($this->getMinkParameter('base_url') . '/data.json', $session);
+  public function iShouldSeeValidDatasjon() {
+    $page_content = $this->getSession()->getDriver()->getContent();
+    var_dump($page_content);
 
     $results = open_data_schema_pod_process_validate($this->getMinkParameter('base_url') . '/data.json', TRUE);
     if ($results['errors']) {
