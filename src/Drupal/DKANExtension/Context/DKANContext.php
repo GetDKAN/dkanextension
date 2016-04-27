@@ -337,6 +337,36 @@ class DKANContext extends RawDKANContext {
   }
 
   /**
+   * @Given /^I select "([^"]*)" from "([^"]*)" chosen\.js select box$/
+   **/
+  public function iSelectFromChosenJsSelectBox($option, $select) {
+    $select = $this->fixStepArgument($select);
+    $option = $this->fixStepArgument($option);
+
+    $page = $this->getSession()->getPage();
+    $field = $page->findField($select, true);
+
+    if (null === $field) {
+      throw new \Exception(sprintf('"' . $select . '" field was not found in the form.'));
+    }
+
+    $id = $field->getAttribute('id');
+    $opt = $field->find('named', array('option', $option));
+
+    if ($opt === null) {
+      throw new \Exception(sprintf('"' . $option . '" option was not found in the chosen field.'));
+    }
+
+    $val = $opt->getValue();
+
+    $javascript = "jQuery('#$id').val('$val');
+                   jQuery('#$id').trigger('chosen:updated');
+                   jQuery('#$id').trigger('change');";
+
+    $this->getSession()->executeScript($javascript);
+  }
+
+  /**
    * @Given /^I click the chosen field "([^"]*)" and enter "([^"]*)"$/
    *
    * DEPRECATED: DONT USE. The clicking of the chosen fields to select some values
