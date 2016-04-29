@@ -265,18 +265,6 @@ class DKANContext extends RawDKANContext {
   }
 
   /**
-   * @Then /^I should see the "([^"]*)" element in the "([^"]*)" region$/
-   */
-  public function assertRegionElement($tag, $region) {
-    $regionObj = $this->getMink()->getRegion($region);
-    $elements = $regionObj->findAll('css', $tag);
-    if (!empty($elements)) {
-      return;
-    }
-    throw new \Exception(sprintf('The element "%s" was not found in the "%s" region on the page %s', $tag, $region, $this->getSession()->getCurrentUrl()));
-  }
-
-  /**
    * @Given /^I switch out of all frames$/
    */
   public function iSwitchOutOfAllFrames() {
