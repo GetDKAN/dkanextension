@@ -3,6 +3,7 @@ namespace Drupal\DKANExtension\Context;
 
 use Drupal\DKANExtension\Context\RawDKANContext;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
+use Symfony\Component\Config\Definition\Exception\Exception;
 use \stdClass;
 
 require_once "Utils/dkan_rest_api_crud.php";
@@ -125,9 +126,14 @@ class DatasetRESTAPIContext extends RawDKANContext
     if ($resource) {
       // Get resource ID.
       $resource_id = $resource->getIdentifier();
+      // Build file path.
+      $file_path = rtrim(realpath($this->getMinkParameter('files_path')), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $file;
+      if (!is_file($file_path)) {
+        throw new Exception(sprintf('The file %s could not be found', $file));
+      }
       // Prepare file data.
       $file_data = array(
-        "files[1]" => curl_file_create($this->getMinkParameter('files_path') . $file),
+        "files[1]" => curl_file_create($file_path),
         "field_name" => "field_upload",
         "attach" => 1
       );
