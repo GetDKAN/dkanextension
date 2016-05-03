@@ -1,10 +1,8 @@
 <?php
 namespace Drupal\DKANExtension\Context;
 
-use Drupal\DKANExtension\Context\RawDKANContext;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Symfony\Component\Config\Definition\Exception\Exception;
-use \stdClass;
 
 require_once "Utils/dkan_rest_api_crud.php";
 
@@ -82,7 +80,7 @@ class DatasetRESTAPIContext extends RawDKANContext
       // Login and get token.
       $this->get_session_and_token();
 
-      // Create nodes
+      // Update nodes
       foreach ($data->getHash() as $node_data) {
         // Get node data.
         $processed_data = $this->build_node_data($node_data, $node);
@@ -135,7 +133,7 @@ class DatasetRESTAPIContext extends RawDKANContext
       $file_data = array(
         "files[1]" => curl_file_create($file_path),
         "field_name" => "field_upload",
-        "attach" => 1
+        "attach" => 0 // 0 -> replace 1 -> append.
       );
       // Login and get token.
       $this->get_session_and_token();
@@ -149,7 +147,7 @@ class DatasetRESTAPIContext extends RawDKANContext
   }
 
   /**
-   *
+   * Login and get both session cookie and token.
    */
   private function get_session_and_token() {
     // Get cookie_session and csrf_token.
@@ -159,7 +157,7 @@ class DatasetRESTAPIContext extends RawDKANContext
   }
 
   /**
-   *
+   * Build node data as needed by the Dataset Rest Api endpoint.
    */
   private function build_node_data($data, $node = null) {
     $node_data = array();
@@ -188,7 +186,7 @@ class DatasetRESTAPIContext extends RawDKANContext
   }
 
   /**
-   *
+   * Process field if needed to be sent using the rest API.
    */
   private function process_field($field, $field_value) {
     switch ($field) {
