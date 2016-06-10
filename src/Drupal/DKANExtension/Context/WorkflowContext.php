@@ -64,7 +64,12 @@ class WorkflowContext extends RawDKANContext {
 
       // This function actually updates the transition.
       workbench_moderation_moderate($node, $state_key, $current_user->uid);
-
+      $callbacks = &drupal_register_shutdown_function();
+      while (list($key, $callback) = each($callbacks)) {
+        if ($callback['callback'] == "workbench_moderation_store") {
+          call_user_func_array($callback['callback'], $callback['arguments']);
+        }
+      }
       // Back global user to the original user. Probably an anonymous.
       $user = $global_user;
     }
