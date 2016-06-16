@@ -64,12 +64,23 @@ class WorkflowContext extends RawDKANContext {
 
       // This function actually updates the transition.
       workbench_moderation_moderate($node, $state_key, $current_user->uid);
+
+      // the workbench_moderation_moderate defer some status updates on the
+      // node (currently the "Publish" status) to the process shutdown. Which
+      // does not work well on Behat since scenarios are run on a single drupal
+      // bootstrap.
+      // To work around this setup. After calling the
+      // `workbench_moderation_moderate` callback we check if a call to the
+      // `workbench_moderation_store` function is part of the shutdown
+      // execution and run it.
       $callbacks = &drupal_register_shutdown_function();
       while (list($key, $callback) = each($callbacks)) {
         if ($callback['callback'] == "workbench_moderation_store") {
           call_user_func_array($callback['callback'], $callback['arguments']);
+          unset($callbacks[$key]);
         }
       }
+
       // Back global user to the original user. Probably an anonymous.
       $user = $global_user;
     }
