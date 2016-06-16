@@ -289,7 +289,8 @@ class RawDKANEntityContext extends RawDKANContext {
         case 'field_item_image':
           // Links
         case 'field_item_link':
-          // Text field formatting?
+          $wrapper->$property->set(array("url" => $value));
+          break;
         case 'token':
           // References to nodes
         default:
