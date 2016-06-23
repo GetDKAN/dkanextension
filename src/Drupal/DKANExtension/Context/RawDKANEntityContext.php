@@ -292,6 +292,9 @@ class RawDKANEntityContext extends RawDKANContext {
           // Text field formatting?
         case 'token':
           // References to nodes
+        case 'safeword_field':
+          $wrapper->$property->set(array("machine" => $value));
+          break;
         default:
           // For now, just error out as we can't handle it yet.
           throw new \Exception("Not sure how to handle field '$label' with type '$field_type'");
