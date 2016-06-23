@@ -187,4 +187,29 @@ class DatasetContext extends RawDKANEntityContext {
     );
     $title->click();
   }
+
+  /**
+   * @Then I should see all published datasets
+   */
+  public function iShouldSeeAllPublishedDatasets(){
+    // Search the list of datasets actually on the page (up to $number items)
+    $dataset_list = array();
+    $count = 0;
+    while(($row = $this->getSession()->getPage()->find('css', '.views-row-'.($count+1))) !== null){
+      $row = $row->find('css', 'h2');
+      $dataset_list[] = $row->getText();
+      $count++;
+    }
+
+    $index = search_api_index_load('datasets');
+    $query = new SearchApiQuery($index);
+
+    $results = $query->condition('type', 'dataset')
+      ->condition('status', '1')
+      ->execute();
+    $total = count($results['results']);
+    if ($total !== $count) {
+      throw new \Exception("Found $count datasets in the page but total is $total.");
+    }
+  }
 }
