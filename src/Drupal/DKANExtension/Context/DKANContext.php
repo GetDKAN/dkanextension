@@ -614,6 +614,22 @@ class DKANContext extends RawDKANContext {
   }
 
   /**
+   * @When I disable the module :module
+   */
+  public function iDisableTheModule($module)
+  {
+    module_disable(array($module));
+  }
+
+  /**
+   * @When I enable the module :module
+   */
+  public function iEnableTheModule($module)
+  {
+    module_enable(array($module));
+  }
+
+  /**
    * Returns fixed step argument (with \\" replaced back to ").
    *
    * @param string $argument
