@@ -55,6 +55,22 @@ class SearchAPIContext extends RawDrupalContext implements SnippetAcceptingConte
     }
   }
 
+  /**
+   * Update the active search form from step.
+   */
+  public function updateSearchForm($form) {
+
+    if ($this->active_form == $form) {
+      // Nothing needed here
+      return;
+    }
+
+    if (!isset($this->search_forms[$form])) {
+      throw new \Exception("Search form isn't configured: $form");
+    }
+
+    $this->active_form = $form;
+  }
 
   /*****************************
    * CUSTOM STEPS
@@ -66,33 +82,36 @@ class SearchAPIContext extends RawDrupalContext implements SnippetAcceptingConte
    */
    public function iSearchFor($term, $form = 'default') {
 
-    if (!isset($this->search_forms[$form])) {
-      throw new \Exception("Search form isn't configured: $form");
-    }
-    $form_data = $this->search_forms[$form];
+    $this->updateSearchForm($form);
+
+
+    $form_data = $this->search_forms[$this->active_form];
     $search_form = $this->getSession()->getPage()->findAll('css', $form_data['form_css']);
-    if (count($search_form) == 1) {
-      $this->active_form = $form;
-      $search_form = array_pop($search_form);
-      $search_form->fillField($form_data['form_field'], $term);
-      $search_form->pressButton($form_data['form_button']);
-      $results = $this->getSession()->getPage()->find("css", $form_data['results_css']);
-      if (!isset($results)) {
-        throw new \Exception("Search results region not found on the page.");
-      }
-    }
-    else if(count($search_form) > 1) {
+
+    if(count($search_form) > 1) {
       throw new \Exception("More than one search form found on the page.");
     }
     else if(count($search_form) < 1) {
       throw new \Exception("No search form found on the page.");
     }
+
+    $search_form = array_pop($search_form);
+    $search_form->fillField($form_data['form_field'], $term);
+    $search_form->pressButton($form_data['form_button']);
+    $results = $this->getSession()->getPage()->find("css", $form_data['results_css']);
+    if (!isset($results)) {
+      throw new \Exception("Search results region not found on the page.");
+    }
   }
 
   /**
    * @Then I should see :number search results shown on the page
+   * @Then I should see :number search results shown on the page in the :form search form
    */
-  public function iShouldSeeSearchResults($number) {
+  public function iShouldSeeSearchResults($number, $form = 'default') {
+
+    $this->updateSearchForm($form);
+
     $results = $this->findResults();
     $count = count($results);
     if ($count != (int) $number) {
@@ -102,8 +121,12 @@ class SearchAPIContext extends RawDrupalContext implements SnippetAcceptingConte
 
   /**
    * @Then I should see at least :number search results shown on the page
+   * @Then I should see at least :number search results shown on the page in the :form search form
    */
-  public function iShouldSeeAtLeastSearchResults($number) {
+  public function iShouldSeeAtLeastSearchResults($number, $form = 'default') {
+
+    $this->updateSearchForm($form);
+
     $results = $this->findResults();
     $count = count($results);
     if ($count < (int) $number) {
@@ -113,8 +136,12 @@ class SearchAPIContext extends RawDrupalContext implements SnippetAcceptingConte
 
   /**
    * @Then I should not see :text in the search results
+   * @Then I should not see :text in the search results in the :form search form
    */
-  public function iShouldNotSeeTextInSearchResults($text) {
+  public function iShouldNotSeeTextInSearchResults($text, $form = 'default') {
+
+    $this->updateSearchForm($form);
+
     $results = $this->findInResults('named', array('content', $text));
     foreach ($results as $key => $result) {
       if (!empty($result)) {
@@ -125,8 +152,12 @@ class SearchAPIContext extends RawDrupalContext implements SnippetAcceptingConte
 
   /**
    * @Then I should see :text in the search results
+   * @Then I should see :text in the search results in the :form search form
    */
-  public function iShouldSeeTextInSearchResults($text) {
+  public function iShouldSeeTextInSearchResults($text, $form = 'default') {
+
+    $this->updateSearchForm($form);
+
     $results = $this->findInResults('named', array('content', $text));
     $found = false;
     $count = count($results);
