@@ -10,6 +10,7 @@ use Behat\Gherkin\Node\TableNode;
 use Behat\Mink\Exception\DriverException;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Behat\Tester\Exception\PendingException;
+use EntityFieldQuery;
 use \stdClass;
 use Symfony\Component\Config\Definition\Exception\Exception;
 
@@ -661,6 +662,51 @@ class DKANContext extends RawDKANContext {
     $buttonObj = $regionObj->findButton($button);
     if ($buttonObj) {
       throw new \Exception(sprintf("The button '%s' is present in the region '%s' on the page %s", $button, $region, $this->getSession()->getCurrentUrl()));
+    }
+  }
+
+  /**
+   * @Then all default content with type :type and bundle :bundle listed in :fixture fixture should :status
+   */
+  public function allDefaultContentWithTypeAndBundleListedInFixtureShould($type, $bundle, $fixture, $status)
+  {
+    // Prepare data.
+    $default_content_mod_path = drupal_get_path('module', 'dkan_default_content');
+
+    // Build path for 'list' fixture file.
+    $list_fixture = $default_content_mod_path . '/data/' . $fixture . '_list.json';
+
+    // Load the list of content.
+    $content_list = file_get_contents($list_fixture);
+    $content_list = json_decode($content_list, true);
+
+    foreach ($content_list['result'] as $content_id) {
+
+      // Build path for 'show' fixture file.
+      $show_fixture = $default_content_mod_path . '/data/' . $fixture . '_show?id=' . $content_id . '.json';
+
+      // Load content data.
+      $content_data = file_get_contents($show_fixture);
+      $content_data = json_decode($content_data, true);
+
+      // Get content UUID. Some content like datasets export the UUID in the ID field.
+      $content_uuid = (isset($content_data['result']['uuid'])) ? $content_data['result']['uuid'] : $content_data['result']['id'];
+
+      // Try to load the content based on the UUID.
+      $query = new EntityFieldQuery();
+      $query->entityCondition('entity_type', $type)
+        ->entityCondition('bundle', $bundle)
+        ->propertyCondition('uuid', $content_uuid);
+      $result = $query->execute();
+
+      // Show error if needed.
+      if (($status === 'be loaded') && empty($result)) {
+        throw new \Exception(sprintf("The content with type '%s' and id '%s' could not be found", $type, $content));
+      }
+
+      if (($status === 'not be loaded') && !empty($result)) {
+        throw new \Exception(sprintf("The content with type '%s' and id '%s' could be found", $type, $content));
+      }
     }
   }
 
