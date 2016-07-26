@@ -187,4 +187,31 @@ class DatasetContext extends RawDKANEntityContext {
     );
     $title->click();
   }
+
+  /**
+   * @Then I should see all published datasets
+   */
+  public function iShouldSeeAllPublishedDatasets(){
+    $session = $this->getSession();
+    $page = $session->getPage();
+    $search_region = $page->find('css', '.view-dkan-datasets');
+    $search_results = $search_region->findAll('css', '.view-header');
+
+    $index = search_api_index_load('datasets');
+    $query = new SearchApiQuery($index);
+
+    $results = $query->condition('type', 'dataset')
+      ->condition('status', '1')
+      ->execute();
+    $total = count($results['results']);
+    $text = $total . " results";
+
+    foreach ($search_results as $search_result) {
+      $found = $search_result->getText();
+    }
+
+    if ($found !== $text) {
+      throw new \Exception("Found $found in the page but total is $total.");
+    }
+  }
 }

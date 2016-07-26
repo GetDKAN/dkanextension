@@ -10,6 +10,7 @@ use Behat\Gherkin\Node\TableNode;
 use Behat\Mink\Exception\DriverException;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Behat\Tester\Exception\PendingException;
+use EntityFieldQuery;
 use \stdClass;
 use Symfony\Component\Config\Definition\Exception\Exception;
 
@@ -265,18 +266,6 @@ class DKANContext extends RawDKANContext {
   }
 
   /**
-   * @Then /^I should see the "([^"]*)" element in the "([^"]*)" region$/
-   */
-  public function assertRegionElement($tag, $region) {
-    $regionObj = $this->getMink()->getRegion($region);
-    $elements = $regionObj->findAll('css', $tag);
-    if (!empty($elements)) {
-      return;
-    }
-    throw new \Exception(sprintf('The element "%s" was not found in the "%s" region on the page %s', $tag, $region, $this->getSession()->getCurrentUrl()));
-  }
-
-  /**
    * @Given /^I switch out of all frames$/
    */
   public function iSwitchOutOfAllFrames() {
@@ -334,6 +323,36 @@ class DKANContext extends RawDKANContext {
       throw new \Exception(sprintf('"' . $value . '" option was not found in the chosen field.'));
     }
     $title->click();
+  }
+
+  /**
+   * @Given /^I select "([^"]*)" from "([^"]*)" chosen\.js select box$/
+   **/
+  public function iSelectFromChosenJsSelectBox($option, $select) {
+    $select = $this->fixStepArgument($select);
+    $option = $this->fixStepArgument($option);
+
+    $page = $this->getSession()->getPage();
+    $field = $page->findField($select, true);
+
+    if (null === $field) {
+      throw new \Exception(sprintf('"' . $select . '" field was not found in the form.'));
+    }
+
+    $id = $field->getAttribute('id');
+    $opt = $field->find('named', array('option', $option));
+
+    if ($opt === null) {
+      throw new \Exception(sprintf('"' . $option . '" option was not found in the chosen field.'));
+    }
+
+    $val = $opt->getValue();
+
+    $javascript = "jQuery('#$id').val('$val');
+                   jQuery('#$id').trigger('chosen:updated');
+                   jQuery('#$id').trigger('change');";
+
+    $this->getSession()->executeScript($javascript);
   }
 
   /**
@@ -596,6 +615,22 @@ class DKANContext extends RawDKANContext {
   }
 
   /**
+   * @When I disable the module :module
+   */
+  public function iDisableTheModule($module)
+  {
+    module_disable(array($module));
+  }
+
+  /**
+   * @When I enable the module :module
+   */
+  public function iEnableTheModule($module)
+  {
+    module_enable(array($module));
+  }
+
+  /**
    * Returns fixed step argument (with \\" replaced back to ").
    *
    * @param string $argument
@@ -607,6 +642,73 @@ class DKANContext extends RawDKANContext {
     return str_replace('\\"', '"', $argument);
   }
 
+
+  /**
+   * Checks if a button with id|name|title|alt|value exists in a region
+   *
+   * @Then I should not see the button :button in the :region( region)
+   * @Then I should not see the :button button in the :region( region)
+   *
+   * @param $button
+   *   string The id|name|title|alt|value of the button
+   * @param $region
+   *   string The region in which the button should not be found
+   *
+   * @throws \Exception
+   *   If region cannot be found or the button is present on region.
+   */
+  public function iShouldNotSeeTheButtonInThe($button, $region) {
+    $regionObj = $this->getMink()->getRegion($region);
+    $buttonObj = $regionObj->findButton($button);
+    if ($buttonObj) {
+      throw new \Exception(sprintf("The button '%s' is present in the region '%s' on the page %s", $button, $region, $this->getSession()->getCurrentUrl()));
+    }
+  }
+
+  /**
+   * @Then all default content with type :type and bundle :bundle listed in :fixture fixture should :status
+   */
+  public function allDefaultContentWithTypeAndBundleListedInFixtureShould($type, $bundle, $fixture, $status)
+  {
+    // Prepare data.
+    $default_content_mod_path = drupal_get_path('module', 'dkan_default_content');
+
+    // Build path for 'list' fixture file.
+    $list_fixture = $default_content_mod_path . '/data/' . $fixture . '_list.json';
+
+    // Load the list of content.
+    $content_list = file_get_contents($list_fixture);
+    $content_list = json_decode($content_list, true);
+
+    foreach ($content_list['result'] as $content_id) {
+
+      // Build path for 'show' fixture file.
+      $show_fixture = $default_content_mod_path . '/data/' . $fixture . '_show?id=' . $content_id . '.json';
+
+      // Load content data.
+      $content_data = file_get_contents($show_fixture);
+      $content_data = json_decode($content_data, true);
+
+      // Get content UUID. Some content like datasets export the UUID in the ID field.
+      $content_uuid = (isset($content_data['result']['uuid'])) ? $content_data['result']['uuid'] : $content_data['result']['id'];
+
+      // Try to load the content based on the UUID.
+      $query = new EntityFieldQuery();
+      $query->entityCondition('entity_type', $type)
+        ->entityCondition('bundle', $bundle)
+        ->propertyCondition('uuid', $content_uuid);
+      $result = $query->execute();
+
+      // Show error if needed.
+      if (($status === 'be loaded') && empty($result)) {
+        throw new \Exception(sprintf("The content with type '%s' and id '%s' could not be found", $type, $content));
+      }
+
+      if (($status === 'not be loaded') && !empty($result)) {
+        throw new \Exception(sprintf("The content with type '%s' and id '%s' could be found", $type, $content));
+      }
+    }
+  }
 
   /************************************/
   /* Gravatar                         */
