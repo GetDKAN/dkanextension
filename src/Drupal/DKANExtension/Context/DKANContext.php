@@ -499,6 +499,24 @@ class DKANContext extends RawDKANContext {
       throw new \Exception( "Couldn't find button $text within $wait seconds");
     }
   }
+  
+  /**
+ * @When I wait for :text to disappear
+ * @param $text
+ * @throws \Exception
+ */
+public function iWaitForTextToDisappear($text)
+{
+    $this->jsContext->spin(function(FeatureContext $context) use ($text) {
+        try {
+            $context->assertPageContainsText($text);
+        }
+        catch(ResponseTextException $e) {
+            return true;
+        }
+        return false;
+    });
+}
 
 
   /**
