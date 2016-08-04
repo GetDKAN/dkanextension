@@ -214,4 +214,83 @@ class DatasetContext extends RawDKANEntityContext {
       throw new \Exception("Found $found in the page but total is $total.");
     }
   }
+
+  /**
+   * @Then I should see all the dataset fields in the form
+   */
+  public function iShouldSeeAllTheDatasetFieldsInTheForm()
+  {
+    $form_css_selector = '.node-dataset-form';
+
+    // We could use field_info_instances() to get the list of fields for the 'dataset' content
+    // type but that would not cover the case where a field is removed accidentally.
+    $dataset_fields = array(
+      'title' => 'Title',
+      'Description' => 'Description',
+      'field_tags' => 'Tags',
+      'field_topics' => 'Topics',
+      'field_license' => 'License',
+      'field_author' => 'Author',
+      'field_spatial_geographical_cover' => 'Spatial / Geographical Coverage Location',
+      'field_frequency' => 'Frequency',
+      'field_granularity' => 'Granularity',
+      'field_data_dictionary_type' => 'Data Dictionary Type',
+      'field_data_dictionary' => 'Data Dictionary',
+      'field_contact_name' => 'Contact Name',
+      'field_contact_email' => 'Contact Email',
+      'field_public_access_level' => 'Public Access Level',
+      'field_additional_info' => 'Additional Info',
+      'field_resources' => 'Resources',
+      'field_related_content' => 'Related Content',
+      'field_landing_page' => 'Homepage URL',
+      'field_rights' => 'Rights',
+      'field_conforms_to' => 'Data Standard',
+      'field_language' => 'Language',
+      'og_group_ref' => 'Publisher'
+    );
+
+    $dataset_fieldsets = array(
+      'field_spatial' => 'Spatial / Geographical Coverage Area',
+      'field_temporal_coverage' => 'Temporal Coverage',
+    );
+
+    // Get all available form fields.
+    // Searching by the Label as a text on the page is not enough since a text like 'Resources'
+    // could appear because other reasons.
+    $session = $this->getSession();
+    $page = $session->getPage();
+    $form_region = $page->find('css', $form_css_selector);
+    $form_field_elements = $form_region->findAll('css', '.form-item label');
+    $form_fieldset_elements = $form_region->findAll('css', 'fieldset div.fieldset-legend');
+
+    // Clean found fields. Some of them are empty values.
+    $available_form_fields = array();
+    foreach ($form_field_elements as $form_field_element) {
+      if (!empty($form_field_element)) {
+        $available_form_fields[] = $form_field_element->getText();
+      }
+    }
+
+    // Clean found fieldsets. Some of them are empty values.
+    $available_form_fieldsets = array();
+    foreach ($form_fieldset_elements as $form_fieldset_element) {
+      if (!empty($form_fieldset_element)) {
+        $available_form_fieldsets[] = $form_fieldset_element->getText();
+      }
+    }
+
+    // Check that all form fiels are present
+    foreach ($dataset_fields as $key => $field_name) {
+      if (!in_array("$field_name", $available_form_fields)) {
+        throw new \Exception("$field_name was not found in the form with CSS selector '$form_css_selector'");
+      }
+    }
+
+    // Check that all form fielsets are present
+    foreach ($dataset_fieldsets as $key => $fieldset_name) {
+      if (!in_array("$fieldset_name", $available_form_fieldsets)) {
+        throw new \Exception("$fieldset_name was not found in the form with CSS selector '$form_css_selector'");
+      }
+    }
+  }
 }
