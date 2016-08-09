@@ -243,7 +243,6 @@ class DatasetContext extends RawDKANEntityContext {
       'field_resources' => 'Resources',
       'field_related_content' => 'Related Content',
       'field_landing_page' => 'Homepage URL',
-      'field_rights' => 'Rights',
       'field_conforms_to' => 'Data Standard',
       'field_language' => 'Language',
       'og_group_ref' => 'Publisher'
