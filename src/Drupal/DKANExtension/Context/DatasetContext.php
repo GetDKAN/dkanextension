@@ -226,7 +226,7 @@ class DatasetContext extends RawDKANEntityContext {
     // type but that would not cover the case where a field is removed accidentally.
     $dataset_fields = array(
       'title' => 'Title',
-      'Description' => 'Description',
+      'body' => 'Description',
       'field_tags' => 'Tags',
       'field_topics' => 'Topics',
       'field_license' => 'License',
@@ -280,14 +280,14 @@ class DatasetContext extends RawDKANEntityContext {
 
     // Check that all form fiels are present
     foreach ($dataset_fields as $key => $field_name) {
-      if (!in_array("$field_name", $available_form_fields)) {
+      if (!in_array($field_name, $available_form_fields)) {
         throw new \Exception("$field_name was not found in the form with CSS selector '$form_css_selector'");
       }
     }
 
     // Check that all form fielsets are present
     foreach ($dataset_fieldsets as $key => $fieldset_name) {
-      if (!in_array("$fieldset_name", $available_form_fieldsets)) {
+      if (!in_array($fieldset_name, $available_form_fieldsets)) {
         throw new \Exception("$fieldset_name was not found in the form with CSS selector '$form_css_selector'");
       }
     }
