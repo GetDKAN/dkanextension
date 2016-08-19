@@ -11,9 +11,13 @@ class MailContext extends RawDrupalContext implements SnippetAcceptingContext {
 
   public $originalMailSystem =  array('default-system' => 'DefaultMailSystem');
   protected $activeEmail;
+  protected $maillog = false;
 
   public function __construct() {
     $this->originalMailSystem = variable_get('mail_system', $this->originalMailSystem);
+  if (isset($this->originalMailSystem['default-system']) &&  $this->originalMailSystem['default-system'] == 'MaillogMailSystem') {
+      $this->maillog = true;
+    }
   }
 
   /**
@@ -21,6 +25,10 @@ class MailContext extends RawDrupalContext implements SnippetAcceptingContext {
    */
   public function beforeMail() {
     // Setup the testing mail system.
+    if ($this->maillog) {
+      // Don't change the mail system if it's maillog. We'll handle that differently.
+      return;
+    }
     $this->setMailSystem(array('default-system' => 'TestingMailSystem'));
   }
 
@@ -38,14 +46,38 @@ class MailContext extends RawDrupalContext implements SnippetAcceptingContext {
   }
 
   public function getMailSystem() {
-    variable_get('mail_system', $this->originalMailSystem);
+    return variable_get('mail_system', $this->originalMailSystem);
   }
 
   public function flushMailSystem() {
-    variable_set('drupal_test_email_collector', array());
+    if ($this->maillog) {
+      db_query("TRUNCATE {maillog}");
+    }
+    else {
+      variable_set('drupal_test_email_collector', array());
+    }
   }
 
   public function getMails() {
+    // Note: The mail system may be hardcoded in settings.php.
+    $mail_array = array();
+
+    if ($this->maillog) {
+
+      $results = db_query("SELECT idmaillog, header_from, header_to, header_reply_to, header_all, subject, body FROM {maillog}");
+      foreach( $results as $result) {
+        $mail = array();
+        // Reformat the results to match what TestMailSystem creates.
+        $mail['to'] = $result->header_to;
+        $mail['from'] = $result->header_from;
+        $mail['subject'] = $result->subject;
+        $mail['body'] = $result->body;
+        $mail_array[] = $mail;
+      }
+      return $mail_array;
+    }
+
+
     // We can't use variable_get() because $conf is only fetched once per
     // scenario... (TODO IS THIS TRUE? seems like it should work fine because of variable_set()
     // setting the database and $conf (settings cache) --Frank)
@@ -53,12 +85,12 @@ class MailContext extends RawDrupalContext implements SnippetAcceptingContext {
     if (isset($variables['drupal_test_email_collector'])) {
       return $variables['drupal_test_email_collector'];
     }
-    return array();
+    return $mail_array;
   }
 
   /**
-   * @Then (the )user :username should receive an email
-   * @Then (the )user :username should receive an email containing :content
+   * @Then (the) user :username should receive an email
+   * @Then (the) user :username should receive an email containing :content
    */
   public function userShouldReceiveAnEmail($username, $content = '')
   {
@@ -120,7 +152,7 @@ class MailContext extends RawDrupalContext implements SnippetAcceptingContext {
   }
 
   /**
-   *  @Then (the )user :username should not receive an email
+   *  @Then (the) user :username should not receive an email
    */
   public function userShouldNotReceiveAnEmail($username)
   {
@@ -157,5 +189,15 @@ class MailContext extends RawDrupalContext implements SnippetAcceptingContext {
         return TRUE;
       }
       throw new \Exception('Did not find expected content in message body or subject.');
+  }
+
+  /**
+   * @Given the email queue is cleared
+   *
+   * This step is useful to clear the email queue between steps if needed.
+   */
+  public function theEmailQueueIsCleared()
+  {
+    $this->flushMailSystem();
   }
 }

@@ -1,19 +1,19 @@
 <?php
 namespace Drupal\DKANExtension\Context;
 
-use Drupal\DrupalExtension\Context\RawDrupalContext;
-use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\Gherkin\Node\TableNode;
-use Behat\Behat\Hook\Scope\BeforeScenarioScope;
+use Drupal\DKANExtension\ServiceContainer\Page;
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
+use EntityDrupalWrapper;
 use EntityMetadataWrapperException;
 use EntityFieldQuery;
+use Symfony\Component\Config\Definition\Exception\Exception;
 
 
 /**
  * Defines application features from the specific context.
  */
-class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingContext {
+class RawDKANEntityContext extends RawDKANContext {
 
   // Store entities as EntityMetadataWrappers for easy property inspection.
   //protected $entities = array();
@@ -25,21 +25,8 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
   protected $field_properties = array();
   protected $field_map_custom = array();
 
-  /**
-   * @var \Drupal\DKANExtension\Context\PageContext
-   */
-  protected $pageContext;
-  /**
-   * @var \Drupal\DKANExtension\Context\SearchAPIContext
-   */
-  protected $searchContext;
-  /**
-   * @var \Drupal\DKANExtension\Context\EntityStore
-   */
-  protected $entityStore;
-
-
-  public function __construct($entity_type, $bundle, $field_map_overrides = NULL, $field_map_custom = array()) {
+  
+  public function __construct($entity_type, $bundle, $field_map_overrides = array('published' => 'status'), $field_map_custom = array()) {
     $entity_info = entity_get_info($entity_type);
     $this->entity_type = $entity_type;
     $this->field_properties = array();
@@ -88,17 +75,9 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
   }
 
   /**
-   * @BeforeScenario
-   */
-  public function gatherContexts(BeforeScenarioScope $scope) {
-    $environment = $scope->getEnvironment();
-    $this->entityStore = $environment->getContext('Drupal\DKANExtension\Context\EntityStore');
-    $this->pageContext = $environment->getContext('Drupal\DKANExtension\Context\PageContext');
-    $this->searchContext = $environment->getContext('Drupal\DKANExtension\Context\SearchAPIContext');
-  }
-
-  /**
    * @AfterScenario
+   *
+   * @param AfterScenarioScope $scope
    */
   public function deleteAll(AfterScenarioScope $scope) {
     $wrappers = $this->entityStore->retrieve($this->entity_type, $this->bundle);
@@ -135,9 +114,9 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    * Get Entity by name
    *
    * @param $name
-   * @return Content or FALSE
+   * @return EntityDrupalWrapper or FALSE
    */
-  private function getByName($name) {
+  public function getByName($name) {
     return $this->entityStore->retrieve_by_name($name);
   }
 
@@ -158,8 +137,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    * Takes a array of key-mapped values and creates a fresh entity
    * using the data provided. The array should correspond to the context's field_map
    *
-   * @param $entity - the array of values to create an entity from
-   * @return the stdClass entity, or FALSE if failed
+   * @return \stdClass entity, or FALSE if failed
    */
   public function new_wrapper() {
     $entity = array();
@@ -167,24 +145,29 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
       $entity[$this->bundle_key] = $this->bundle;
     }
     $entity = entity_create($this->entity_type, $entity);
+
+    // Entity API doesn't automatically apply node settings like revision,
+    // status, promote, etc.
+    // See http://drupal.stackexchange.com/questions/115710/why-entity-metadata-wrapper-save-doesnt-update-nodes-revision
+    if ($this->entity_type == 'node') {
+      node_object_prepare($entity);
+    }
     $wrapper = entity_metadata_wrapper($this->entity_type, $entity);
 
     return $wrapper;
   }
 
   /**
-   * @param $wrapper
-   * @param $field
+   * @param EntityDrupalWrapper $wrapper
+   * @param array $field
    * @return mixed
    * @throws \Exception
    */
-  public function apply_fields($wrapper, $field) {
-
-    foreach ($field as $label => $value ) {
+  public function apply_fields($wrapper, $fields) {
+    foreach ($fields as $label => $value ) {
       if (in_array($label, $this->field_map_custom)) {
         continue;
       }
-
       if(isset($this->field_map[$label]) && $this->field_map[$label] === 'status'){
         $value = $this->convertStringToBool($value);
       }
@@ -193,6 +176,12 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
     return $wrapper;
   }
 
+  /**
+   * @param EntityDrupalWrapper $wrapper
+   * @param $label
+   * @param $value
+   * @throws \Exception
+   */
   public function set_field($wrapper, $label, $value) {
     $property = null;
     try {
@@ -227,11 +216,11 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
 
         // Dates - handle strings as best we can. See http://php.net/manual/en/datetime.formats.relative.php
         case 'date':
-          $date = strtotime($value);
-          if ($date === FALSE) {
+          $timestamp = strtotime($value);
+          if ($timestamp === FALSE) {
             throw new \Exception("Couldn't create a date with '$value'");
           }
-          $wrapper->$property->set($date);
+          $wrapper->$property->set($timestamp);
           break;
 
         // User reference
@@ -262,13 +251,13 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
             $tid = $found_term;
           }
           else {
-            throw new \Exception("Term '$term'' not found in vocabulary '$vocab_machine_name'' for field '$property'");
+            throw new \Exception("Term '$value'' not found for field '$property'");
           }
           $wrapper->$property->set($tid);
           break;
 
 
-        case 'list<taxonomy_term>':
+        case "list<taxonomy_term>":
           // Convert the tags to tids.
           $tids = array();
           foreach ($this->explode_list($value) as $term) {
@@ -276,7 +265,7 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
               $tids[] = $found_term;
             }
             else {
-              throw new \Exception("Term '$term'' not found in vocabulary '$vocab_machine_name'' for field '$property'");
+              throw new \Exception("Term '$term'' not found for field '$property'");
             }
           }
           $wrapper->$property->set($tids);
@@ -315,9 +304,13 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
         case 'field_item_image':
           // Links
         case 'field_item_link':
-          // Text field formatting?
+          $wrapper->$property->set(array("url" => $value));
+          break;
         case 'token':
           // References to nodes
+        case 'safeword_field':
+          $wrapper->$property->set(array("machine" => $value));
+          break;
         default:
           // For now, just error out as we can't handle it yet.
           throw new \Exception("Not sure how to handle field '$label' with type '$field_type'");
@@ -351,9 +344,10 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    * Build routine for an entity.
    *
    * @param $fields - the array of key-mapped values
-   * @return $wrapper - EntityMetadataWrapper
+   * @return EntityDrupalWrapper $wrapper - EntityMetadataWrapper
    */
   public function save($fields) {
+    /** @var EntityDrupalWrapper $wrapper */
     $wrapper = $this->new_wrapper();
     $this->pre_save($wrapper, $fields);
     $wrapper->save();
@@ -364,25 +358,44 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
    /**
     * Do further processing after saving.
     *
-    * @param $wrapper
+    * @param EntityDrupalWrapper $wrapper
     * @param $fields
     */
   public function pre_save($wrapper, $fields) {
+
+    // Update the changed date after the entity has been saved.
+    if (isset($fields['date changed'])) {
+      unset($fields['date changed']);
+    }
+    if (!isset($fields['author']) && isset($this->field_map['author'])) {
+      $field = $this->field_map['author'];
+      $user = $this->getCurrentUser();
+      if ($user) {
+        $wrapper->$field->set($user);
+      }
+    }
+    $this->dispatchDKANHooks('BeforeDKANEntityCreateScope', $wrapper, $fields);
     $this->apply_fields($wrapper, $fields);
   }
 
   /**
    * Do further processing after saving.
    *
-   * @param $wrapper
-   * @param $fields
+   * @param EntityDrupalWrapper $wrapper
+   * @param array $fields
    */
   public function post_save($wrapper, $fields) {
+    $this->dispatchDKANHooks('AfterDKANEntityCreateScope', $wrapper, $fields);
+    // Remove the base url from the url and add it
+    // to the page array for easy navigation.
+    $url = parse_url($wrapper->url->value());
     // Add the url to the page array for easy navigation.
-    $this->pageContext->addPage(array(
-      'title' => $wrapper->label(),
-      'url' => $wrapper->url->value(),
-    ));
+    $page = new Page($wrapper->label(), $url['path']);
+    $this->getPageStore()->store($page);
+
+    if (isset($fields['date changed'])) {
+      $this->setChangedDate($wrapper, $fields['date changed']);
+    }
 
     if (isset($fields["dataset"])) {
       if($fields["dataset"]) {
@@ -440,23 +453,58 @@ class RawDKANEntityContext extends RawDrupalContext implements SnippetAcceptingC
   }
 
   /**
-   * Get node by title from Database.
+   * Forces the change of a entities changed date as drupal makes this difficult.
    *
-   * @param $title: title of the node.
+   * Note that this is only supported for nodes currently. TODO Support all entities.
+   * Also, there is no guarantee that another action won't cause the updated date to change.
    *
-   * @return Node or FALSE
+   * @param EntityDrupalWrapper $saved_wrapper
+   * @param String $time_str See time formats supported by strtotime().
    */
-  public function getNodeByTitle($title) {
-    $query = new EntityFieldQuery();
-    $query->entityCondition('entity_type', 'node')
-      ->propertyCondition('title', $title)
-      ->range(0, 1);
-    $result = $query->execute();
-    if (isset($result['node'])) {
-      $nid = array_keys($result['node']);
-      return entity_load('node', $nid);
+  function setChangedDate($saved_wrapper, $time_str) {
+    if (! ($saved_wrapper->type() == 'node')) {
+      throw new Exception("Specifying the 'changed' date is only supported for nodes currently.");
     }
-    return false;
+    if (!$nid = $saved_wrapper->getIdentifier()) {
+      throw new Exception("Node ID could not be found. A node must be saved first before the changed date can be updated.");
+    }
+    // Use REQUEST_TIME, because that will remain consistent across all tests.
+    if (!$timestamp = strtotime($time_str, REQUEST_TIME)) {
+      throw new Exception("Could not create a timestamp from $time_str.");
+    }
+    else {
+      db_update('node')
+        ->fields(array('changed' => $timestamp))
+        ->condition('nid', $nid, '=')
+        ->execute();
+
+      db_update('node_revision')
+        ->fields(array('timestamp' => $timestamp))
+        ->condition('nid', $nid, '=')
+        ->execute();
+    }
   }
 
+  /**
+   * Fire off a DKAN hook.
+   *
+   * Based on RawDrupalContext::dispatchHooks().
+   *
+   * @param $scopeType
+   * @param \stdClass $entity
+   * @throws
+   */
+  protected function dispatchDKANHooks($scopeType, \EntityDrupalWrapper $wrapper, &$fields) {
+    $fullScopeClass = 'Drupal\\DKANExtension\\Hook\\Scope\\' . $scopeType;
+    $scope = new $fullScopeClass($this->getDrupal()->getEnvironment(), $this, $wrapper, $fields);
+    $callResults = $this->dispatcher->dispatchScopeHooks($scope);
+
+    // The dispatcher suppresses exceptions, throw them here if there are any.
+    foreach ($callResults as $result) {
+      if ($result->hasException()) {
+        $exception = $result->getException();
+        throw $exception;
+      }
+    }
+  }
 }
