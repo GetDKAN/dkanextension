@@ -1,4 +1,5 @@
 <?php
+namespace Drupal\DKANExtension\Context;
 
 use Drupal\DKANExtension\Context\RawDKANEntityContext;
 use Drupal\DKANExtension\Context\ModeratorTrait;

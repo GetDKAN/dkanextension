@@ -1,4 +1,5 @@
 <?php
+namespace Drupal\DKANExtension\Context;
 
 use Drupal\DrupalExtension\Context\RawDrupalContext;
 use Behat\Behat\Context\SnippetAcceptingContext;
