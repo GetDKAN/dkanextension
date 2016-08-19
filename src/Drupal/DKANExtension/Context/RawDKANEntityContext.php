@@ -6,6 +6,7 @@ use Drupal\DKANExtension\ServiceContainer\Page;
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use EntityDrupalWrapper;
 use EntityMetadataWrapperException;
+use EntityFieldQuery;
 use Symfony\Component\Config\Definition\Exception\Exception;
 
 
@@ -22,11 +23,18 @@ class RawDKANEntityContext extends RawDKANContext {
   protected $bundle_key = FALSE;
   protected $field_map = array();
   protected $field_properties = array();
+  protected $field_map_custom = array();
 
-  public function __construct($entity_type , $bundle, $field_map_overrides = array('published' => 'status')) {
+  
+  public function __construct($entity_type, $bundle, $field_map_overrides = array('published' => 'status'), $field_map_custom = array()) {
     $entity_info = entity_get_info($entity_type);
     $this->entity_type = $entity_type;
     $this->field_properties = array();
+
+    if ($field_map_overrides == NULL) {
+      $field_map_overrides = array('published' => 'status');
+    }
+    $this->field_map_custom = $field_map_custom;
 
     // Check that the bundle specified actually exists, or if none given,
     // that this is an entity with no bundles (single bundle w/ name of entity)
@@ -157,6 +165,9 @@ class RawDKANEntityContext extends RawDKANContext {
    */
   public function apply_fields($wrapper, $fields) {
     foreach ($fields as $label => $value ) {
+      if (in_array($label, $this->field_map_custom)) {
+        continue;
+      }
       if(isset($this->field_map[$label]) && $this->field_map[$label] === 'status'){
         $value = $this->convertStringToBool($value);
       }
@@ -278,10 +289,14 @@ class RawDKANEntityContext extends RawDKANContext {
               throw new \Exception("Named Node '$name' not found, was it created during the test?");
             }
           }
-          $wrapper->$property->set($nids);
-          break;
 
-
+          if ($field_type == "node") {
+            // If the field type is node only one nid is expected.
+            // Default to the first element.
+            $wrapper->$property->set(reset($nids));
+          } else {
+            $wrapper->$property->set($nids);
+          }
           break;
         // Not sure (something more complex)
         case 'struct':
@@ -382,6 +397,12 @@ class RawDKANEntityContext extends RawDKANContext {
       $this->setChangedDate($wrapper, $fields['date changed']);
     }
 
+    if (isset($fields["dataset"])) {
+      if($fields["dataset"]) {
+        node_save($wrapper->value());
+      }
+    }
+
     // Process any outstanding search items.
     $this->searchContext->process();
 
@@ -463,7 +484,8 @@ class RawDKANEntityContext extends RawDKANContext {
         ->execute();
     }
   }
-  /*
+
+  /**
    * Fire off a DKAN hook.
    *
    * Based on RawDrupalContext::dispatchHooks().

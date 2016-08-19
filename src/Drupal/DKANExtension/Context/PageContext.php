@@ -1,13 +1,23 @@
 <?php
 namespace Drupal\DKANExtension\Context;
 
-use Behat\Gherkin\Node\TableNode;
 use Drupal\DKANExtension\ServiceContainer\Page;
 
 /**
  * Defines application features from the specific context.
  */
 class PageContext extends RawDKANContext {
+  // Store pages to be referenced in an array.
+  protected $pages = array();
+
+  /**
+   * Add page to context.
+   *
+   * @param $page
+   */
+  public function addPage($page) {
+    $this->pages[$page['title']] = $page;
+  }
 
   /**
    * @Given pages:
@@ -63,6 +73,103 @@ class PageContext extends RawDKANContext {
     }
 
     parent::assertCurrentPageCode($code);
+  }
+
+  /**
+<<<<<<< HEAD
+   * @Given I should not be able to access :page_title
+   */
+  public function iShouldNotBeAbleToAccessPage($page_title) {
+    if (isset($this->pages[$page_title])) {
+      $session = $this->getSession();
+      $url = $this->pages[$page_title]['url'];
+      $session->visit($this->locatePath($url));
+      try {
+        $code = $session->getStatusCode();
+        if ($code == 200) {
+          throw new \Exception("200 OK: the page is accessible.");
+        }
+      } catch (UnsupportedDriverActionException $e) {
+        // Some drivers don't support status codes, namely Selenium2Driver so
+        // just drive on.
+      }
+    }
+    else {
+      throw new \Exception("Page $page_title not found in the pages array, was it added?");
+    }
+  }
+
+  /**
+   * @Given I should be able to edit :page
+   */
+  public function iShouldBeAbleToEditPage($page) {
+    $node = $this->getNodeByTitle($page);
+    if(!$node) {
+      throw new \Exception(sprintf($page . " node not found."));
+    }
+
+    $session = $this->getSession();
+    $url = "/node/" . $node->nid . "/edit";
+    $session->visit($this->locatePath($url));
+    $code = $session->getStatusCode();
+    if ($code == 403) {
+      throw new \Exception("403 Forbidden: the server refused to respond.");
+    }
+  }
+
+  /**
+   * @Given I should not be able to edit :page
+   */
+  public function iShouldNotBeAbleToEditPage($page) {
+    $node = $this->getNodeByTitle($page);
+    if(!$node) {
+      throw new \Exception(sprintf($page . " node not found."));
+    }
+
+    $session = $this->getSession();
+    $url = "/node/" . $node->nid . "/edit";
+    $session->visit($this->locatePath($url));
+    $code = $session->getStatusCode();
+    if ($code == 200) {
+      throw new \Exception("200 OK: the page is accessible.");
+    }
+  }
+
+  /**
+   * @Given I should be able to delete :page
+   */
+  public function iShouldBeAbleToDeletePage($page) {
+    $node = $this->getNodeByTitle($page);
+    if(!$node) {
+      throw new \Exception(sprintf($page . " node not found."));
+    }
+
+    $session = $this->getSession();
+    $url = "/node/" . $node->nid . "/delete";
+    $session->visit($this->locatePath($url));
+    $code = $session->getStatusCode();
+    if ($code == 403) {
+      throw new \Exception("403 Forbidden: the server refused to respond.");
+    }
+  }
+
+  /**
+   * @Given I should not be able to delete :page
+   */
+  public function iShouldNotBeAbleToDeletePage($page) {
+    $node = $this->getNodeByTitle($page);
+    if(!$node) {
+      throw new \Exception(sprintf($page . " node not found."));
+    }
+
+    $session = $this->getSession();
+    $url = "/node/" . $node->nid . "/delete";
+    $session->visit($this->locatePath($url));
+    $code = $session->getStatusCode();
+
+    if ($code == 200) {
+      throw new \Exception("200 OK: the page is accessible.");
+    }
   }
 
   /**
@@ -132,6 +239,4 @@ class PageContext extends RawDKANContext {
     // Assume mean getting a 403 (Access Denied), not just missing or an error.
     $this->visitPage($named_entity, "delete");
   }
-
-
 }
