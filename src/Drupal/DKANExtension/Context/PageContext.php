@@ -2,6 +2,8 @@
 namespace Drupal\DKANExtension\Context;
 
 use Drupal\DKANExtension\ServiceContainer\Page;
+use Behat\Gherkin\Node\TableNode;
+
 
 /**
  * Defines application features from the specific context.
