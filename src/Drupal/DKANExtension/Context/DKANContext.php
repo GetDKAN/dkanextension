@@ -474,7 +474,7 @@ class DKANContext extends RawDKANContext {
   /**
    * Wait for the given number of seconds. ONLY USE FOR DEBUGGING!
    *
-   * @Given I wait for :time second(s)
+   * @Given I debug wait for :time second(s)
    */
   public function iWaitForSeconds($time) {
     sleep($time);
