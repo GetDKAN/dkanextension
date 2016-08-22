@@ -76,6 +76,11 @@ class DatasetContext extends RawDKANEntityContext {
     $this->isNodeInModerationState($node, $state);
   }
 
+  public function pre_save($wrapper, $fields) {
+    $this->preSaveModerate($wrapper, $fields);
+    parent::pre_save($wrapper, $fields);
+  }
+
   public function post_save($wrapper, $fields) {
     parent::post_save($wrapper, $fields);
     $this->moderate($wrapper, $fields);

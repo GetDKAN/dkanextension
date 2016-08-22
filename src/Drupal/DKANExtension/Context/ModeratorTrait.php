@@ -38,6 +38,15 @@ trait ModeratorTrait {
 
   }
 
+  public function preSaveModerate($wrapper, &$fields) {
+    if (isset($fields['moderation'])) {
+      // status = 0 causing values to not be accessible by default.
+      if ($fields['moderation'] == 'published') {
+        $fields['published'] = 1;
+      }
+    }
+  }
+
   public function isNodeInModerationState($node, $state) {
     $query = db_select('workbench_moderation_node_history', 'h')
     ->fields('h')
