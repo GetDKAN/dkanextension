@@ -1,9 +1,7 @@
 <?php
 namespace Drupal\DKANExtension\Context;
-
 use Drupal\DKANExtension\ServiceContainer\Page;
 use Behat\Gherkin\Node\TableNode;
-
 
 /**
  * Defines application features from the specific context.
@@ -34,6 +32,7 @@ class PageContext extends RawDKANContext {
       }
       $page = new Page($pageHash['name'], $pageHash['url']);
       $this->getPageStore()->store($page);
+      $this->pages[$pageHash['name']] = $pageHash;
     }
   }
 
