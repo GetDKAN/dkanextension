@@ -51,6 +51,44 @@ class PODContext extends RawDKANContext {
   }
 
   /**
+   * @Then I should see a valid catalog xml
+   */
+  public function iShouldSeeAValidCatalogXml() {
+    // Change /catalog.xml path to /catalog during tests. The '.' on the filename breaks tests on CircleCI's server.
+    $dcat = open_data_schema_map_api_load('dcat_v1_1');
+    if ($dcat->endpoint !== 'catalog') {
+      $dcat->endpoint = 'catalog';
+      drupal_write_record('open_data_schema_map', $dcat, 'id');
+      drupal_static_reset('open_data_schema_map_api_load_all');
+      menu_rebuild();
+    }
+
+    // Change /catalog.json path to /catalogjson during tests. The '.' on the filename breaks tests on CircleCI's server.
+    $dcat_json = open_data_schema_map_api_load('dcat_v1_1_json');
+    if ($dcat_json->endpoint !== 'catalogjson') {
+      $dcat_json->endpoint = 'catalogjson';
+      drupal_write_record('open_data_schema_map', $dcat_json, 'id');
+      drupal_static_reset('open_data_schema_map_api_load_all');
+      menu_rebuild();
+    }
+
+    // Get base URL.
+    $url = $this->getMinkParameter('base_url') ? $this->getMinkParameter('base_url') : "http://127.0.0.1::8888";
+    $url_xml = $url . '/catalog';
+    $url_json = $url . '/catalogjson';
+    $this->visitPath($url_xml);
+    $this->assertSession()->statusCodeEquals('200');
+
+    // Validate DCAT.
+    $results = open_data_schema_dcat_process_validate($url_json, TRUE);
+    if ($results['errors']) {
+      throw new \Exception(sprintf('catalog.xml is not valid.'));
+    }
+  }
+
+
+
+  /**
    * @Then I should see all of the Federal Extras fields
    */
   public function iShouldSeeAllOfTheFederalExtrasFields()
