@@ -405,6 +405,25 @@ class DKANContext extends RawDKANContext {
   }
 
   /**
+   * Click some exact text.
+   *
+   * @When I click on the exact text :text
+   */
+
+  public function iClickOnTheExactText($text) {
+    $session = $this->getSession();
+    $element = $session->getPage()->find(
+      'xpath',
+      $session->getSelectorsHandler()->selectorToXpath('xpath',
+        '//*[text() = "' . $text . '"]')
+    );
+    if (NULL === $element) {
+      throw new \InvalidArgumentException(sprintf('Cannot find text: "%s"', $text));
+    }
+    $element->click();
+  }
+
+  /**
    * Click on map icon as identified by its z-index.
    *
    * @Given /^I click map icon number "([^"]*)"$/
