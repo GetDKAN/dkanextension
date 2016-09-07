@@ -493,7 +493,7 @@ class DKANContext extends RawDKANContext {
   /**
    * Wait for the given number of seconds. ONLY USE FOR DEBUGGING!
    *
-   * @Given I wait for :time second(s)
+   * @Given I debug wait for :time second(s)
    */
   public function iWaitForSeconds($time) {
     sleep($time);
@@ -693,6 +693,28 @@ public function iWaitForTextToDisappear($text)
     $buttonObj = $regionObj->findButton($button);
     if ($buttonObj) {
       throw new \Exception(sprintf("The button '%s' is present in the region '%s' on the page %s", $button, $region, $this->getSession()->getCurrentUrl()));
+    }
+  }
+
+  /**
+   * Checks if a button with id|name|title|alt|value exists in a region
+   *
+   * @Then I should see the button :button in the :region( region)
+   * @Then I should see the :button button in the :region( region)
+   *
+   * @param $button
+   *   string The id|name|title|alt|value of the button
+   * @param $region
+   *   string The region in which the button should not be found
+   *
+   * @throws \Exception
+   *   If region cannot be found or the button is present on region.
+   */
+  public function iShouldSeeTheButtonInThe($button, $region) {
+    $regionObj = $this->getMink()->getRegion($region);
+    $buttonObj = $regionObj->findButton($button);
+    if (!$buttonObj) {
+      throw new \Exception(sprintf("The button '%s' is not present in the region '%s' on the page %s", $button, $region, $this->getSession()->getCurrentUrl()));
     }
   }
 

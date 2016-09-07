@@ -9,8 +9,14 @@ use Behat\Testwork\Environment\Environment;
 use Drupal\DKANExtension\ServiceContainer\EntityStore;
 use Drupal\DKANExtension\ServiceContainer\PageStore;
 use Drupal\DrupalExtension\Context\RawDrupalContext;
+use Drupal\DrupalExtension\Context\DrupalContext;
+use Behat\Behat\Context\SnippetAcceptingContext;
+use Behat\Gherkin\Node\TableNode;
+use Behat\Mink\Exception\DriverException;
+use Behat\Behat\Tester\Exception\PendingException;
+use EntityFieldQuery;
+use \stdClass;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
-
 
 /**
  * Defines application features from the specific context.
@@ -79,6 +85,25 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
 
   }
 
+  /**
+   * Get node by title from Database.
+   *
+   * @param $title: title of the node.
+   *
+   * @return Node or FALSE
+   */
+  public function getNodeByTitle($title) {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+      ->propertyCondition('title', $title)
+      ->range(0, 1);
+    $result = $query->execute();
+    if (isset($result['node'])) {
+      $nid = array_keys($result['node']);
+      return entity_load('node', $nid);
+    }
+    return false;
+  }
 
   /**
    * Get the currently logged in user.
@@ -209,7 +234,6 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
     return $session;
   }
 
-
   public function visit($url, $session = null) {
     if (!$session) {
       $session = $this->getSession();
@@ -226,5 +250,4 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
       throw new \Exception("Page {$session->getCurrentUrl()} code doesn't match. ASSERT: $assert_code CODE: $code");
     }
   }
-
 }
