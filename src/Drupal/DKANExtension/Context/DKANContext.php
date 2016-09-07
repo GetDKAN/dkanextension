@@ -785,6 +785,119 @@ public function iWaitForTextToDisappear($text)
     }
   }
 
+  /**
+   * Helper function to get current context.
+   */
+  function getRegion($region) {
+    $session = $this->getSession();
+    $regionObj = $session->getPage()->find('region', $region);
+    if (!$regionObj) {
+      throw new \Exception(sprintf('No region "%s" found on the page %s.', $region, $session->getCurrentUrl()));
+    }
+    return $regionObj;
+  }
+
+  /**
+   * @Given I should see :number items of :item in the :region region
+   */
+  public function iShouldSeeItemsOfInTheRegion($number, $item, $region) {
+    $regionObj = $this->getRegion($region);
+    // Count the number of items in the region
+    $count = count($regionObj->findAll('css', $item));
+    if (!$count) {
+      throw new \Exception(sprintf("No items found in the '%s' region.", $region));
+    }
+    else {
+      if ($count != $number) {
+        if ($count > $number) {
+          throw new \Exception(sprintf("More than %s items were found in the '%s' region (%s).", $number, $region, $count));
+        }
+        else {
+          throw new \Exception(sprintf("Less than %s items were found in the '%s' region (%s).", $number, $region, $count));
+        }
+      }
+    }
+  }
+
+  /**
+   * @Given I should see :number items of :item or more in the :region region
+   */
+  public function iShouldSeeItemsOfOrMoreInTheRegion($number, $item, $region) {
+    $regionObj = $this->getRegion($region);
+    // Count the number of items in the region
+    $count = count($regionObj->findAll('css', $item));
+    if (!$count) {
+      throw new \Exception(sprintf("No items found in the '%s' region.", $region));
+    }
+    else {
+      if ($count < $number) {
+        throw new \Exception(sprintf("Less than %s items were found in the '%s' region (%s).", $number, $region, $count));
+      }
+    }
+  }
+
+  /**
+   * @Then I should see :arg1 field
+   */
+  public function iShouldSeeField($arg1)
+  {
+    $session = $this->getSession();
+    $page = $session->getPage();
+    $field = $page->findField($arg1);
+    if (!isset($field)) {
+      throw new \Exception(sprintf("Field with the text '%s' not found", $arg1));
+    }
+  }
+
+  /**
+   * @Then I should not see :arg1 field
+   */
+  public function iShouldNotSeeField($arg1)
+  {
+    $session = $this->getSession();
+    $page = $session->getPage();
+    $field = $page->findField($arg1);
+    if ($field) {
+      throw new \Exception(sprintf("Field with the text '%s' is found", $arg1));
+    }
+  }
+
+  /**
+   * @Then the text :text should be visible in the element :element
+   */
+  public function theTextShouldBeVisible($text, $selector)
+  {
+    $element = $this->getSession()->getPage();
+    $nodes = $element->findAll('css', $selector . ":contains('" . $text . "')");
+    foreach ($nodes as $node) {
+      if ($node->isVisible() === TRUE) {
+        return;
+      }
+      else {
+        throw new \Exception("Form item \"$selector\" with label \"$text\" is not visible.");
+      }
+    }
+    throw new \Exception("Form item \"$selector\" with label \"$text\" not found.");
+  }
+
+  /**
+   * @Then the text :text should not be visible in the element :element
+   */
+  public function theTextShouldNotBeVisible($text, $selector)
+  {
+    $element = $this->getSession()->getPage();
+    $nodes = $element->findAll('css', $selector . ":contains('" . $text . "')");
+    foreach ($nodes as $node) {
+      if ($node->isVisible() === FALSE) {
+        return;
+      }
+      else {
+        throw new \Exception("Form item \"$selector\" with label \"$text\" is visible.");
+      }
+    }
+    throw new \Exception("Form item \"$selector\" with label \"$text\" not found.");
+  }
+
   /************************************/
   /* Gravatar                         */
   /************************************/
