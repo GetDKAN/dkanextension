@@ -13,7 +13,8 @@ class DatasetContext extends RawDKANEntityContext {
   public function __construct() {
     parent::__construct(
       'node',
-      'dataset'
+      'dataset',
+      array('topics' => 'field_topics', 'published' => 'status')
     );
   }
 
