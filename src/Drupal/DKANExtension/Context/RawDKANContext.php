@@ -167,6 +167,9 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
     // Support relative paths when on a "base_url" page. Otherwise assume a full url.
     $current_url = str_replace($this->getMinkParameter("base_url"), "", $current_url);
 
+    // Fix url when https everywhere is enabled
+    $current_url = preg_replace('/https:\/\/\w+/', '', $current_url);
+
     // Remove hash part from url since it's widely used
     // for client side routing and this can make some
     // test fail.
