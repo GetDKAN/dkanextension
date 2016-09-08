@@ -1,7 +1,9 @@
 <?php
 namespace Drupal\DKANExtension\Context;
 
+use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\Gherkin\Node\TableNode;
+use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Drupal\DKANExtension\ServiceContainer\Page;
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use EntityDrupalWrapper;
@@ -13,7 +15,7 @@ use Symfony\Component\Config\Definition\Exception\Exception;
 /**
  * Defines application features from the specific context.
  */
-class RawDKANEntityContext extends RawDKANContext {
+class RawDKANEntityContext extends RawDKANContext implements SnippetAcceptingContext {
 
   // Store entities as EntityMetadataWrappers for easy property inspection.
   //protected $entities = array();
@@ -25,7 +27,20 @@ class RawDKANEntityContext extends RawDKANContext {
   protected $field_properties = array();
   protected $field_map_custom = array();
 
-  
+  /**
+   * @var \Drupal\DKANExtension\Context\PageContext
+   */
+  protected $pageContext;
+  /**
+   * @var \Drupal\DKANExtension\Context\SearchAPIContext
+   */
+  protected $searchContext;
+  /**
+   * @var \Drupal\DKANExtension\Context\EntityStore
+   */
+  protected $entityStore;
+
+
   public function __construct($entity_type, $bundle, $field_map_overrides = array('published' => 'status'), $field_map_custom = array()) {
     $entity_info = entity_get_info($entity_type);
     $this->entity_type = $entity_type;
@@ -72,6 +87,16 @@ class RawDKANEntityContext extends RawDKANContext {
         $this->field_map[strtolower($info['label'])] = $field;
       }
     }
+  }
+
+  /**
+   * @BeforeScenario
+   */
+  public function gatherContexts(BeforeScenarioScope $scope) {
+    $environment = $scope->getEnvironment();
+    $this->entityStore = $environment->getContext('Drupal\DKANExtension\Context\EntityStore');
+    $this->pageContext = $environment->getContext('Drupal\DKANExtension\Context\PageContext');
+    $this->searchContext = $environment->getContext('Drupal\DKANExtension\Context\SearchAPIContext');
   }
 
   /**
