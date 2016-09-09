@@ -1,5 +1,6 @@
 <?php
 namespace Drupal\DKANExtension\Context;
+use Drupal\DKANExtension\Hook\Scope\BeforeDKANEntityCreateScope;
 
 use \stdClass;
 
@@ -170,9 +171,9 @@ class WorkflowContext extends RawDKANContext {
   }
 
   /**
-   * @beforeDKANEntityCreate
+   * @beforeDKANEntityCreateScope
    */
-  public function setGlobalUserBeforeEntity(\Drupal\DKANExtension\Hook\Scope\BeforeDKANEntityCreateScope $scope) {
+  public function setGlobalUserBeforeEntity(BeforeDKANEntityCreateScope $scope) {
     // Don't do anything if workbench isn't enabled or this isn't a node.
     $wrapper = $scope->getEntity();
     if (!function_exists('workbench_moderation_moderate_node_types') || $wrapper->type() !== 'node'){
