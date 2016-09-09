@@ -207,5 +207,18 @@ class WorkflowContext extends RawDKANContext {
       $user = $this->old_global_user;
     }
   }
+  /**
+   * @Then I click the :link next to :title
+   */
+  public function iClickTheLinkNextToTitle($link, $title) {
+    $items = $this->getSession()->getPage()->findAll('xpath', "//span[contains(@class,'views-dkan-workflow-tree-title')]/a[text()=' " . $title . "']/../../span[contains(@class, 'views-dkan-workflow-tree-action')]/a[text()='" . $link . "']");
+    if (empty($items)) {
+      throw new \Exception("Link '$link' not found on the page.");
+    }
+    $url = reset($items)->getAttribute('href');
+    $session = $this->getSession();
+    $session->visit($this->locatePath($url));
+  }
+
 }
 
