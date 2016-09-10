@@ -364,6 +364,24 @@ class DKANContext extends RawDKANContext {
   }
 
   /**
+   * @Then the :selector elements should be sorted in this order :order
+   */
+  public function theElementsShouldBeSortedInThisOrder($selector, $order) {
+    $region = $this->getRegion("content");
+    $items = $region->findAll('css', $selector);
+    $actual_order = array();
+    foreach ($items as $item) {
+      if ($item->getText() !== "") {
+        $actual_order[] = $item->getText();
+      }
+    }
+    $order = explode(" > ", $order);
+    if ($order !== $actual_order) {
+      throw new Exception(sprintf("The elements were not sorted in the order provided."));
+    }
+  }
+
+  /**
    * @Given /^I click the chosen field "([^"]*)" and enter "([^"]*)"$/
    *
    * DEPRECATED: DONT USE. The clicking of the chosen fields to select some values
@@ -901,6 +919,20 @@ public function iWaitForTextToDisappear($text)
       }
     }
     throw new \Exception("Form item \"$selector\" with label \"$text\" not found.");
+  }
+
+  /**
+    * @Then I visit the link :selector
+    */
+  public function iVisitTheLink($selector) {
+    $region = $this->getRegion("content");
+    $items = $region->findAll('css', $selector);
+    if (empty($items)) {
+      throw new \Exception("Link '$selector' not found on the page.");
+    }
+    $url = reset($items)->getAttribute('href');
+    $session = $this->getSession();
+    $session->visit($this->locatePath($url));
   }
 
   /************************************/
