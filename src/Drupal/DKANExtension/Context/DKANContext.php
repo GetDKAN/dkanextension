@@ -279,6 +279,15 @@ class DKANContext extends RawDKANContext {
     $this->getSession()->wait(2000, "jQuery('#user-login-dialog').children().length > 0");
   }
 
+  /**
+   * @Given /^I wait for "([^"]*)" seconds$/
+   */
+  public function iWaitForSeconds($milliseconds) {
+    $session = $this->getSession();
+    $session->wait($milliseconds * 1000);
+  }
+
+
 
 
   /**
@@ -373,7 +382,7 @@ class DKANContext extends RawDKANContext {
 
       );
     $field_click->click();
-    $this->iWaitForSeconds(1);
+    $this->iDebugWaitForSeconds(1);
     // Click value that now appears.
     $title = $session->getPage()->find(
       'xpath',
@@ -494,7 +503,7 @@ class DKANContext extends RawDKANContext {
    *
    * @Given I debug wait for :time second(s)
    */
-  public function iWaitForSeconds($time) {
+  public function iDebugWaitForSeconds($time) {
     sleep($time);
   }
 
