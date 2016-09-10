@@ -104,11 +104,8 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
     $environment = $scope->getEnvironment();
     $this->searchContext = $environment->getContext('Drupal\DKANExtension\Context\SearchAPIContext');
     $this->minkContext = $environment->getContext('Drupal\DrupalExtension\Context\MinkContext');
-    // This context needs to be registered and hasn't been up to now. Don't load if we don't need it.
-    //$this->drushContext = $environment->getContext('Drupal\DrupalExtension\Context\DrushContext');
     $this->jsContext = $environment->getContext('Devinci\DevinciExtension\Context\JavascriptContext');
     $this->drupalContext = $environment->getContext('Drupal\DrupalExtension\Context\DrupalContext');
-
   }
 
   /**
