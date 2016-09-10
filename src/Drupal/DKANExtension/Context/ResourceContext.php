@@ -18,7 +18,7 @@ class ResourceContext extends RawDKANEntityContext{
         parent::__construct(
             'node',
             'resource',
-            NULL,
+            array('publisher' => 'og_group_ref', 'published' => 'status'),
             array('moderation', 'moderation_date')
         );
     }
