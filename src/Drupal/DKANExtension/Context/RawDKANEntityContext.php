@@ -35,10 +35,6 @@ class RawDKANEntityContext extends RawDKANContext implements SnippetAcceptingCon
    * @var \Drupal\DKANExtension\Context\SearchAPIContext
    */
   protected $searchContext;
-  /**
-   * @var \Drupal\DKANExtension\Context\EntityStore
-   */
-  protected $entityStore;
 
 
   public function __construct($entity_type, $bundle, $field_map_overrides = array('published' => 'status'), $field_map_custom = array()) {
@@ -94,7 +90,6 @@ class RawDKANEntityContext extends RawDKANContext implements SnippetAcceptingCon
    */
   public function gatherContexts(BeforeScenarioScope $scope) {
     $environment = $scope->getEnvironment();
-    $this->entityStore = $environment->getContext('Drupal\DKANExtension\Context\EntityStore');
     $this->pageContext = $environment->getContext('Drupal\DKANExtension\Context\PageContext');
     $this->searchContext = $environment->getContext('Drupal\DKANExtension\Context\SearchAPIContext');
   }
