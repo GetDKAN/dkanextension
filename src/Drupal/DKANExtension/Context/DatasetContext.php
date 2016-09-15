@@ -245,7 +245,7 @@ class DatasetContext extends RawDKANEntityContext {
       'field_landing_page' => 'Homepage URL',
       'field_conforms_to' => 'Data Standard',
       'field_language' => 'Language',
-      'og_group_ref' => 'Publisher'
+      'og_group_ref' => 'Groups'
     );
 
     $dataset_fieldsets = array(
