@@ -174,6 +174,9 @@ class WorkflowContext extends RawDKANContext {
    * @beforeDKANEntityCreateScope
    */
   public function setGlobalUserBeforeEntity(BeforeDKANEntityCreateScope $scope) {
+    // Enable workflow in case it has not been enabled.
+    module_enable('dkan_workflow');
+
     // Don't do anything if workbench isn't enabled or this isn't a node.
     $wrapper = $scope->getEntity();
     if (!function_exists('workbench_moderation_moderate_node_types') || $wrapper->type() !== 'node'){
