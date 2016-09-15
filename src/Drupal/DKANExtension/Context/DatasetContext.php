@@ -292,4 +292,54 @@ class DatasetContext extends RawDKANEntityContext {
       }
     }
   }
+
+  /**
+   * @Given I :status the :option on DKAN Dataset Forms
+   */
+  public function iTheOnDkanDatasetForms($status, $option)
+  {
+    $status = ($status === 'enable') ? TRUE : FALSE;
+
+    switch ($option) {
+      case 'Strict POD validation':
+        variable_set('dkan_dataset_form_pod_validation', $status);
+        break;
+      case 'Groups validation':
+        variable_set('dkan_dataset_form_group_validation', $status);
+        break;
+      default:
+        break;
+    }
+  }
+
+  /**
+   * @Then I should see the :option groups option
+   */
+  public function iShouldSeeTheGroupsOption($option)
+  {
+    $element = $this->find_select_option('og_group_ref[und][]', $option);
+    if (!$element) {
+      throw new \Exception(sprintf('The %s option could not be found.', $option));
+    }
+  }
+
+  /**
+   * @Then I should not see the :option groups option
+   */
+  public function iShouldNotSeeTheGroupsOption($option)
+  {
+    $element = $this->find_select_option('og_group_ref[und][]', $option);
+    if ($element) {
+      throw new \Exception(sprintf('The %s option was found.', $option));
+    }
+  }
+
+  /**
+   * Helper function to search for an option element inside a select element.
+   */
+  private function find_select_option($select_name, $option) {
+    $session = $this->getSession();
+    $xpath = "//select[@name='" . $select_name . "']//option[text()='" . $option . "']";
+    return $session->getPage()->find('xpath', $session->getSelectorsHandler()->selectorToXpath('xpath', $xpath));
+  }
 }
