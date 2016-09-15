@@ -294,18 +294,21 @@ class DatasetContext extends RawDKANEntityContext {
   }
 
   /**
-   * @Given I :status the :option on DKAN Dataset Forms
+   * @Given I :operation the :option on DKAN Dataset Forms
    */
-  public function iTheOnDkanDatasetForms($status, $option)
+  public function iTheOnDkanDatasetForms($operation, $option)
   {
-    $status = ($status === 'enable') ? TRUE : FALSE;
+    $enabled = 0;
+    if ($operation === "enable") {
+      $enabled = 1;
+    }
 
     switch ($option) {
       case 'Strict POD validation':
-        variable_set('dkan_dataset_form_pod_validation', $status);
+        variable_set('dkan_dataset_form_pod_validation', $enabled);
         break;
       case 'Groups validation':
-        variable_set('dkan_dataset_form_group_validation', $status);
+        variable_set('dkan_dataset_form_group_validation', $enabled);
         break;
       default:
         break;
