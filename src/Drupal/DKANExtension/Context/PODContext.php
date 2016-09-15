@@ -107,6 +107,48 @@ class PODContext extends RawDKANContext {
   }
 
   /**
+   * @Then I should see :option license values
+   */
+  public function iShouldSeeLicenseValues($option)
+  {
+    // Get the list of license names that are valid on POD.
+    $valid_pod_licenses = dkan_dataset_content_types_license_subscribe();
+    foreach ($valid_pod_licenses as $key => $valid_pod_license) {
+      $valid_pod_licenses[$key] = $valid_pod_license['label'];
+    }
+    // Get the list of license names that are not valid on POD.
+    $non_valid_pod_licenses = dkan_dataset_content_types_non_pod_license_values();
+    foreach ($non_valid_pod_licenses as $key => $non_valid_pod_license) {
+      $non_valid_pod_licenses[$key] = $non_valid_pod_license['label'];
+    }
+    // Append the 'None' values.
+    $non_valid_pod_licenses[] = '- Select a value -';
+    $non_valid_pod_licenses[] = 'Other';
+
+    // Build and array with the expected list of license values based on the 'option' parameter.
+    $expected_licenses = $valid_pod_licenses;
+    if ($option === 'all') {
+      $expected_licenses = array_merge($valid_pod_licenses, $non_valid_pod_licenses);
+    }
+
+    // Get the list of licenses that were displayed.
+    $available_licenses = array();
+    $session = $this->getSession();
+    $xpath = "//select[@name='field_license[und][select]']//option";
+    $elements = $session->getPage()->findAll('xpath', $session->getSelectorsHandler()->selectorToXpath('xpath', $xpath));
+    foreach ($elements as $element) {
+      $available_licenses[] = $element->getText();
+    }
+
+    // Compare the list of expected licenses with the list of available licenses.
+    $result = array_diff($available_licenses, $expected_licenses);
+    if (!empty($result)) {
+      throw new \Exception(sprintf('The list of available licenses differs from the
+      list of expected licenses by the following values: %s', implode(',', $result)));
+    }
+  }
+
+  /**
    * @Then I should see all POD required fields
    */
   public function iShouldSeeAllPodRequiredFields()
