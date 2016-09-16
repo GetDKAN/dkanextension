@@ -1,6 +1,7 @@
 <?php
 namespace Drupal\DKANExtension\Context;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
+use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use Drupal\DKANExtension\Hook\Scope\BeforeDKANEntityCreateScope;
 
 use \stdClass;
@@ -13,12 +14,51 @@ class WorkflowContext extends RawDKANContext {
   protected $old_global_user;
 
   /**
-   * @BeforeScenario
+   * @BeforeScenario @enableDKAN_Workflow
    */
-  public function addDKAN_Workflow(BeforeScenarioScope $event)
+  public function addDKAN_Workflow(BeforeScenarioScope $scope)
   {
     // Enable 'open_data_federal_extras' module.
-    module_enable(array('dkan_workflow', 'dkan_workflow_permissions'));
+    module_enable(array(
+      'dkan_workflow_permissions',
+    ));
+
+    module_enable(array(
+      'link_badges',
+      'menu_badges',
+      'views_dkan_workflow_tree',
+      'workbench',
+      'workbench_moderation',
+      'workbench_email',
+    ));
+
+    features_revert_module('dkan_workflow_permissions');
+
+    module_enable(array(
+      'dkan_workflow',
+    ));
+
+    features_revert_module('dkan_workflow');
+
+    cache_clear_all();
+
+  }
+
+  /**
+   * @AfterScenario @disableDKAN_Workflow
+   */
+  public function disableDKAN_Workflow(AfterScenarioScope $event)
+  {
+    // Enable 'open_data_federal_extras' module.
+    module_disable(array(
+      'dkan_workflow',
+      'dkan_workflow_permissions',
+      'views_dkan_workflow_tree',
+      'workbench',
+      'workbench_email',
+      'workbench_moderation',
+    ));
+
   }
 
   /**
