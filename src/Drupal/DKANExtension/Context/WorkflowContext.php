@@ -1,5 +1,7 @@
 <?php
 namespace Drupal\DKANExtension\Context;
+use Behat\Behat\Hook\Scope\BeforeScenarioScope;
+use Drupal\DKANExtension\Hook\Scope\BeforeDKANEntityCreateScope;
 
 use \stdClass;
 
@@ -9,6 +11,15 @@ use \stdClass;
 class WorkflowContext extends RawDKANContext {
 
   protected $old_global_user;
+
+  /**
+   * @BeforeScenario
+   */
+  public function addDKAN_Workflow(BeforeScenarioScope $event)
+  {
+    // Enable 'open_data_federal_extras' module.
+    module_enable(array('dkan_workflow', 'dkan_workflow_permissions'));
+  }
 
   /**
    * @Given I update the moderation state of :named_entity to :state
@@ -170,9 +181,9 @@ class WorkflowContext extends RawDKANContext {
   }
 
   /**
-   * @beforeDKANEntityCreate
+   * @beforeDKANEntityCreateScope
    */
-  public function setGlobalUserBeforeEntity(\Drupal\DKANExtension\Hook\Scope\BeforeDKANEntityCreateScope $scope) {
+  public function setGlobalUserBeforeEntity(BeforeDKANEntityCreateScope $scope) {
     // Don't do anything if workbench isn't enabled or this isn't a node.
     $wrapper = $scope->getEntity();
     if (!function_exists('workbench_moderation_moderate_node_types') || $wrapper->type() !== 'node'){
@@ -207,5 +218,18 @@ class WorkflowContext extends RawDKANContext {
       $user = $this->old_global_user;
     }
   }
+  /**
+   * @Then I click the :link next to :title
+   */
+  public function iClickTheLinkNextToTitle($link, $title) {
+    $items = $this->getSession()->getPage()->findAll('xpath', "//span[contains(@class,'views-dkan-workflow-tree-title')]/a[text()=' " . $title . "']/../../span[contains(@class, 'views-dkan-workflow-tree-action')]/a[text()='" . $link . "']");
+    if (empty($items)) {
+      throw new \Exception("Link '$link' not found on the page.");
+    }
+    $url = reset($items)->getAttribute('href');
+    $session = $this->getSession();
+    $session->visit($this->locatePath($url));
+  }
+
 }
 
