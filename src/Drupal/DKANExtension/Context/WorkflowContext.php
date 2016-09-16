@@ -15,15 +15,6 @@ class WorkflowContext extends RawDKANContext {
   /**
    * @BeforeScenario
    */
-  public function gatherContexts(BeforeScenarioScope $scope){
-    parent::gatherContexts($scope);
-    $environment = $scope->getEnvironment();
-    $this->pageContext = $environment->getContext('Drupal\DKANExtension\Context\PageContext');
-  }
-
-  /**
-   * @BeforeScenario
-   */
   public function addDKAN_Workflow(BeforeScenarioScope $event)
   {
     // Enable 'open_data_federal_extras' module.
