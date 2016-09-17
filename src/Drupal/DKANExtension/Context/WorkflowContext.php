@@ -1,7 +1,7 @@
 <?php
 namespace Drupal\DKANExtension\Context;
-use Behat\Behat\Hook\Scope\BeforeScenarioScope;
-use Behat\Behat\Hook\Scope\AfterScenarioScope;
+use Behat\Behat\Hook\Scope\BeforeFeatureScope;
+use Behat\Behat\Hook\Scope\AfterFeatureScope;
 use Drupal\DKANExtension\Hook\Scope\BeforeDKANEntityCreateScope;
 
 use \stdClass;
@@ -14,15 +14,11 @@ class WorkflowContext extends RawDKANContext {
   protected $old_global_user;
 
   /**
-   * @BeforeScenario @enableDKAN_Workflow
+   * @BeforeFeature @enableDKAN_Workflow
    */
-  public function addDKAN_Workflow(BeforeScenarioScope $scope)
+  public static function addDKAN_Workflow(BeforeFeatureScope $scope)
   {
-    // Enable 'open_data_federal_extras' module.
-    module_enable(array(
-      'dkan_workflow_permissions',
-    ));
-
+    // This order matters through drupal_flush_all_caches.
     module_enable(array(
       'link_badges',
       'menu_badges',
@@ -32,22 +28,26 @@ class WorkflowContext extends RawDKANContext {
       'workbench_email',
     ));
 
-    features_revert_module('dkan_workflow_permissions');
+    // Enable 'open_data_federal_extras' module.
+    module_enable(array(
+      'dkan_workflow_permissions',
+    ));
 
     module_enable(array(
       'dkan_workflow',
     ));
 
-    features_revert_module('dkan_workflow');
+    features_revert(array(
+      'dkan_workflow_permissions' => array('roles_permissions'),
+    ));
 
-    cache_clear_all();
-
+    drupal_flush_all_caches();
   }
 
   /**
-   * @AfterScenario @disableDKAN_Workflow
+   * @AfterFeature
    */
-  public function disableDKAN_Workflow(AfterScenarioScope $event)
+  public static function disableDKAN_Workflow(AfterFeatureScope $event)
   {
     // Enable 'open_data_federal_extras' module.
     module_disable(array(
@@ -59,6 +59,7 @@ class WorkflowContext extends RawDKANContext {
       'workbench_moderation',
     ));
 
+    cache_clear_all();
   }
 
   /**
