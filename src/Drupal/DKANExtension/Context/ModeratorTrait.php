@@ -14,6 +14,7 @@ trait ModeratorTrait {
       // This is needed for workbench views filtering.
       $wrapper->value()->log = $wrapper->value()->uid;
       $wrapper->value()->revision_uid = $wrapper->value()->uid;
+
       db_update('node_revision')
         ->fields(array(
           'uid' => $wrapper->value()->uid,

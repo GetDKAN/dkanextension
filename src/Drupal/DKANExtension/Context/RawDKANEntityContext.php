@@ -382,7 +382,6 @@ class RawDKANEntityContext extends RawDKANContext implements SnippetAcceptingCon
     * @param $fields
     */
   public function pre_save($wrapper, $fields) {
-
     // Update the changed date after the entity has been saved.
     if (isset($fields['date changed'])) {
       unset($fields['date changed']);

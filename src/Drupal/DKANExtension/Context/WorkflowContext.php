@@ -45,7 +45,7 @@ class WorkflowContext extends RawDKANContext {
   }
 
   /**
-   * @AfterFeature
+   * @AfterFeature @disableDKAN_Workflow
    */
   public static function disableDKAN_Workflow(AfterFeatureScope $event)
   {
