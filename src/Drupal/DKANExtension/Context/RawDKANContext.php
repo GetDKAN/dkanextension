@@ -9,8 +9,14 @@ use Behat\Testwork\Environment\Environment;
 use Drupal\DKANExtension\ServiceContainer\EntityStore;
 use Drupal\DKANExtension\ServiceContainer\PageStore;
 use Drupal\DrupalExtension\Context\RawDrupalContext;
+use Drupal\DrupalExtension\Context\DrupalContext;
+use Behat\Behat\Context\SnippetAcceptingContext;
+use Behat\Gherkin\Node\TableNode;
+use Behat\Mink\Exception\DriverException;
+use Behat\Behat\Tester\Exception\PendingException;
+use EntityFieldQuery;
+use \stdClass;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
-
 
 /**
  * Defines application features from the specific context.
@@ -48,6 +54,32 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
    */
   protected $fakeSession;
 
+  /**
+   * @BeforeScenario @disablecaptcha
+   */
+  public function beforeCaptcha()
+  {
+    // Need to both disable the validation function for the captcha
+    // AND disable the appearence of the captcha form field
+    module_load_include('inc', 'captcha', 'captcha');
+    variable_set('disable_captcha', TRUE);
+    captcha_set_form_id_setting('user_login', 'none');
+    captcha_set_form_id_setting('feedback_node_form', 'none');
+    captcha_set_form_id_setting('comment_node_feedback_form', 'none');
+  }
+
+  /**
+   * @AfterScenario @disablecaptcha
+   */
+  public function afterCaptcha()
+  {
+    module_load_include('inc', 'captcha', 'captcha');
+    variable_set('disable_captcha', FALSE);
+    captcha_set_form_id_setting('user_login', 'default');
+    captcha_set_form_id_setting('feedback_node_form', 'default');
+    captcha_set_form_id_setting('comment_node_feedback_form', 'default');
+  }
+
   public function setEntityStore(EntityStore $entityStore) {
     $this->entityStore = $entityStore;
   }
@@ -72,13 +104,29 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
     $environment = $scope->getEnvironment();
     $this->searchContext = $environment->getContext('Drupal\DKANExtension\Context\SearchAPIContext');
     $this->minkContext = $environment->getContext('Drupal\DrupalExtension\Context\MinkContext');
-    // This context needs to be registered and hasn't been up to now. Don't load if we don't need it.
-    //$this->drushContext = $environment->getContext('Drupal\DrupalExtension\Context\DrushContext');
     $this->jsContext = $environment->getContext('Devinci\DevinciExtension\Context\JavascriptContext');
     $this->drupalContext = $environment->getContext('Drupal\DrupalExtension\Context\DrupalContext');
-
   }
 
+  /**
+   * Get node by title from Database.
+   *
+   * @param $title: title of the node.
+   *
+   * @return Node or FALSE
+   */
+  public function getNodeByTitle($title) {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+      ->propertyCondition('title', $title)
+      ->range(0, 1);
+    $result = $query->execute();
+    if (isset($result['node'])) {
+      $nid = array_keys($result['node']);
+      return entity_load('node', $nid);
+    }
+    return false;
+  }
 
   /**
    * Get the currently logged in user.
@@ -208,7 +256,6 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
     $this->fakeSession = $session;
     return $session;
   }
-
 
   public function visit($url, $session = null) {
     if (!$session) {

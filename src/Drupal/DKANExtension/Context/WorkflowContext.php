@@ -1,5 +1,6 @@
 <?php
 namespace Drupal\DKANExtension\Context;
+use Drupal\DKANExtension\Hook\Scope\BeforeDKANEntityCreateScope;
 
 use \stdClass;
 
@@ -170,9 +171,12 @@ class WorkflowContext extends RawDKANContext {
   }
 
   /**
-   * @beforeDKANEntityCreate
+   * @beforeDKANEntityCreateScope
    */
-  public function setGlobalUserBeforeEntity(\Drupal\DKANExtension\Hook\Scope\BeforeDKANEntityCreateScope $scope) {
+  public function setGlobalUserBeforeEntity(BeforeDKANEntityCreateScope $scope) {
+    // Enable workflow in case it has not been enabled.
+    module_enable('dkan_workflow');
+
     // Don't do anything if workbench isn't enabled or this isn't a node.
     $wrapper = $scope->getEntity();
     if (!function_exists('workbench_moderation_moderate_node_types') || $wrapper->type() !== 'node'){
@@ -207,5 +211,18 @@ class WorkflowContext extends RawDKANContext {
       $user = $this->old_global_user;
     }
   }
+  /**
+   * @Then I click the :link next to :title
+   */
+  public function iClickTheLinkNextToTitle($link, $title) {
+    $items = $this->getSession()->getPage()->findAll('xpath', "//span[contains(@class,'views-dkan-workflow-tree-title')]/a[text()=' " . $title . "']/../../span[contains(@class, 'views-dkan-workflow-tree-action')]/a[text()='" . $link . "']");
+    if (empty($items)) {
+      throw new \Exception("Link '$link' not found on the page.");
+    }
+    $url = reset($items)->getAttribute('href');
+    $session = $this->getSession();
+    $session->visit($this->locatePath($url));
+  }
+
 }
 
