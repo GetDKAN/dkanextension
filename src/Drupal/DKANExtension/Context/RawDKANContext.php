@@ -132,8 +132,9 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
    * Get the currently logged in user.
    */
   public function getCurrentUser() {
-    // Rely on DrupalExtension to keep track of the current user.
-    return $this->drupalContext->user;
+    //Rely on DrupalExtension to keep track of the current user.
+    // Disable notice when author is not present
+    return @$this->drupalContext->user;
   }
 
   public function visitPage($named_page, $sub_path = null) {
