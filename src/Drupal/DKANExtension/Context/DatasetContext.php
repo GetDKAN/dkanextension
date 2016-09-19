@@ -328,6 +328,9 @@ class DatasetContext extends RawDKANEntityContext {
       default:
         break;
     }
+
+    // Clear cache.
+    drupal_flush_all_caches();
   }
 
   /**
