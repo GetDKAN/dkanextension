@@ -18,7 +18,7 @@ class WorkflowContext extends RawDKANContext {
    */
   public static function enableDKAN_Workflow(BeforeFeatureScope $scope)
   {
-    if (!$this->shouldEnableModule("dkan_workflow")) {
+    if (!parent::shouldEnableModule("dkan_workflow")) {
       return;
     }
     // This order matters through drupal_flush_all_caches.
@@ -52,7 +52,7 @@ class WorkflowContext extends RawDKANContext {
    */
   public static function disableDKAN_Workflow(AfterFeatureScope $event)
   {
-    if (!$this->shouldEnableModule("dkan_workflow")) {
+    if (!parent::shouldEnableModule("dkan_workflow")) {
       return;
     }
 

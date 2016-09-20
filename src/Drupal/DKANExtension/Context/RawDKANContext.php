@@ -218,29 +218,32 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
 
 
   /**
-   * Check if module can be enabled.
+   * Check if module exists and can be enabled.
    *
+   * Simply using drupal's modoule_exists() function will not work here because 
+   * we are potentially enabling modules that may not even be in the code base.
    */
-  protected function shouldEnableModule(String $module) {
+  protected static function shouldEnableModule($module = "") {
+    $module = (string) $module;
+
     if (empty($module)) {
-      throw new Exception("Cannot check if an empty String can be enabled.");
+      throw new \Exception("Cannot check if an empty String can be enabled.");
     }
 
-    $modules = system_rebuild_module_data();
+    $modules = array_keys(system_rebuild_module_data());
     if (!in_array($module, $modules)) {
-      throw new Exception("Cannot enable non-existing module.");
+      throw new \Exception("Cannot enable non-existing module.");
     }
 
-    $behat_module_check = "behat_{$module}_enabled_by_default";
-    $enabled = variable_get($behat_module_check, NULL);
+    $behat_module_check_enabled = "behat_{$module}_enabled_by_default";
+    $enabled = variable_get($behat_module_check_enabled, NULL);
 
-    if (is_null($behat_module_check)) {
+    if (is_null($enabled)) {
       $enabled = module_exists($module);
-      variable_set($behat_module_check, $enabled);
+      variable_set($behat_module_check_enabled, $enabled);
     }
 
-    return !variable_get($behat_module_check);
-
+    return !$enabled;
   }
 
   public function assertCanViewPage($named_page, $sub_path = null, $assert_code = null){
