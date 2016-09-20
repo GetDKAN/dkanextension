@@ -217,6 +217,32 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
   }
 
 
+  /**
+   * Check if module can be enabled.
+   *
+   */
+  protected function shouldEnableModule(String $module) {
+    if (empty($module)) {
+      throw new Exception("Cannot check if an empty String can be enabled.");
+    }
+
+    $modules = system_rebuild_module_data();
+    if (!in_array($module, $modules)) {
+      throw new Exception("Cannot enable non-existing module.");
+    }
+
+    $behat_module_check = "behat_{$module}_enabled_by_default";
+    $enabled = variable_get($behat_module_check, NULL);
+
+    if (is_null($behat_module_check)) {
+      $enabled = module_exists($module);
+      variable_set($behat_module_check, $enabled);
+    }
+
+    return !variable_get($behat_module_check);
+
+  }
+
   public function assertCanViewPage($named_page, $sub_path = null, $assert_code = null){
     $session = $this->visitPage($named_page, $sub_path);
     $code = $this->getStatusCode();

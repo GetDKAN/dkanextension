@@ -16,8 +16,11 @@ class WorkflowContext extends RawDKANContext {
   /**
    * @BeforeFeature @enableDKAN_Workflow
    */
-  public static function addDKAN_Workflow(BeforeFeatureScope $scope)
+  public static function enableDKAN_Workflow(BeforeFeatureScope $scope)
   {
+    if (!$this->shouldEnableModule("dkan_workflow")) {
+      return;
+    }
     // This order matters through drupal_flush_all_caches.
     module_enable(array(
       'link_badges',
@@ -45,10 +48,14 @@ class WorkflowContext extends RawDKANContext {
   }
 
   /**
-   * @AfterFeature @disableDKAN_Workflow
+   * @AfterFeature @enableDKAN_Workflow
    */
   public static function disableDKAN_Workflow(AfterFeatureScope $event)
   {
+    if (!$this->shouldEnableModule("dkan_workflow")) {
+      return;
+    }
+
     // Enable 'open_data_federal_extras' module.
     module_disable(array(
       'dkan_workflow',
