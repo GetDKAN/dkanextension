@@ -313,24 +313,6 @@ class DatasetContext extends RawDKANEntityContext {
       default:
         break;
     }
-
-    switch ($option) {
-      case 'Strict POD validation':
-        if (variable_get('dkan_dataset_form_pod_validation') === NULL) {
-          throw new \Exception('The variable "dkan_dataset_form_pod_validation" is not set.');
-        }
-        break;
-      case 'Groups validation':
-        if (variable_get('dkan_dataset_form_group_validation') === NULL) {
-          throw new \Exception('The variable "dkan_dataset_form_group_validation" is not set.');
-        }
-        break;
-      default:
-        break;
-    }
-
-    // Clear cache.
-    drupal_flush_all_caches();
   }
 
   /**
