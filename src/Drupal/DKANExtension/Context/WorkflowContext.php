@@ -1,5 +1,8 @@
 <?php
 namespace Drupal\DKANExtension\Context;
+use Behat\Behat\Hook\Scope\BeforeFeatureScope;
+use Behat\Behat\Hook\Scope\AfterFeatureScope;
+use Drupal\DKANExtension\Hook\Scope\BeforeDKANEntityCreateScope;
 
 use \stdClass;
 
@@ -9,6 +12,62 @@ use \stdClass;
 class WorkflowContext extends RawDKANContext {
 
   protected $old_global_user;
+
+  /**
+   * @BeforeFeature @enableDKAN_Workflow
+   */
+  public static function enableDKAN_Workflow(BeforeFeatureScope $scope)
+  {
+    if (!parent::shouldEnableModule("dkan_workflow")) {
+      return;
+    }
+    // This order matters through drupal_flush_all_caches.
+    module_enable(array(
+      'link_badges',
+      'menu_badges',
+      'views_dkan_workflow_tree',
+      'workbench',
+      'workbench_moderation',
+      'workbench_email',
+    ));
+
+    // Enable 'open_data_federal_extras' module.
+    module_enable(array(
+      'dkan_workflow_permissions',
+    ));
+
+    module_enable(array(
+      'dkan_workflow',
+    ));
+
+    features_revert(array(
+      'dkan_workflow_permissions' => array('roles_permissions'),
+    ));
+
+    drupal_flush_all_caches();
+  }
+
+  /**
+   * @AfterFeature @enableDKAN_Workflow
+   */
+  public static function disableDKAN_Workflow(AfterFeatureScope $event)
+  {
+    if (!parent::shouldEnableModule("dkan_workflow")) {
+      return;
+    }
+
+    // Enable 'open_data_federal_extras' module.
+    module_disable(array(
+      'dkan_workflow',
+      'dkan_workflow_permissions',
+      'views_dkan_workflow_tree',
+      'workbench',
+      'workbench_email',
+      'workbench_moderation',
+    ));
+
+    drupal_flush_all_caches();
+  }
 
   /**
    * @Given I update the moderation state of :named_entity to :state
@@ -170,9 +229,9 @@ class WorkflowContext extends RawDKANContext {
   }
 
   /**
-   * @beforeDKANEntityCreate
+   * @beforeDKANEntityCreateScope
    */
-  public function setGlobalUserBeforeEntity(\Drupal\DKANExtension\Hook\Scope\BeforeDKANEntityCreateScope $scope) {
+  public function setGlobalUserBeforeEntity(BeforeDKANEntityCreateScope $scope) {
     // Don't do anything if workbench isn't enabled or this isn't a node.
     $wrapper = $scope->getEntity();
     if (!function_exists('workbench_moderation_moderate_node_types') || $wrapper->type() !== 'node'){
@@ -207,5 +266,18 @@ class WorkflowContext extends RawDKANContext {
       $user = $this->old_global_user;
     }
   }
+  /**
+   * @Then I click the :link next to :title
+   */
+  public function iClickTheLinkNextToTitle($link, $title) {
+    $items = $this->getSession()->getPage()->findAll('xpath', "//span[contains(@class,'views-dkan-workflow-tree-title')]/a[text()=' " . $title . "']/../../span[contains(@class, 'views-dkan-workflow-tree-action')]/a[text()='" . $link . "']");
+    if (empty($items)) {
+      throw new \Exception("Link '$link' not found on the page.");
+    }
+    $url = reset($items)->getAttribute('href');
+    $session = $this->getSession();
+    $session->visit($this->locatePath($url));
+  }
+
 }
 

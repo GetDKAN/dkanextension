@@ -9,8 +9,14 @@ use Behat\Testwork\Environment\Environment;
 use Drupal\DKANExtension\ServiceContainer\EntityStore;
 use Drupal\DKANExtension\ServiceContainer\PageStore;
 use Drupal\DrupalExtension\Context\RawDrupalContext;
+use Drupal\DrupalExtension\Context\DrupalContext;
+use Behat\Behat\Context\SnippetAcceptingContext;
+use Behat\Gherkin\Node\TableNode;
+use Behat\Mink\Exception\DriverException;
+use Behat\Behat\Tester\Exception\PendingException;
+use EntityFieldQuery;
+use \stdClass;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
-
 
 /**
  * Defines application features from the specific context.
@@ -48,6 +54,42 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
    */
   protected $fakeSession;
 
+  /**
+   * @BeforeScenario @disablecaptcha
+   */
+  public function beforeCaptcha()
+  {
+    // Nothing to do.
+    if (!module_exists('captcha')) {
+      return;
+    }
+
+    // Need to both disable the validation function for the captcha
+    // AND disable the appearence of the captcha form field
+    module_load_include('inc', 'captcha', 'captcha');
+    variable_set('disable_captcha', TRUE);
+    captcha_set_form_id_setting('user_login', 'none');
+    captcha_set_form_id_setting('feedback_node_form', 'none');
+    captcha_set_form_id_setting('comment_node_feedback_form', 'none');
+  }
+
+  /**
+   * @AfterScenario @disablecaptcha
+   */
+  public function afterCaptcha()
+  {
+    // Nothing to do.
+    if (!module_exists('captcha')) {
+      return;
+    }
+
+    module_load_include('inc', 'captcha', 'captcha');
+    variable_set('disable_captcha', FALSE);
+    captcha_set_form_id_setting('user_login', 'default');
+    captcha_set_form_id_setting('feedback_node_form', 'default');
+    captcha_set_form_id_setting('comment_node_feedback_form', 'default');
+  }
+
   public function setEntityStore(EntityStore $entityStore) {
     $this->entityStore = $entityStore;
   }
@@ -72,20 +114,37 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
     $environment = $scope->getEnvironment();
     $this->searchContext = $environment->getContext('Drupal\DKANExtension\Context\SearchAPIContext');
     $this->minkContext = $environment->getContext('Drupal\DrupalExtension\Context\MinkContext');
-    // This context needs to be registered and hasn't been up to now. Don't load if we don't need it.
-    //$this->drushContext = $environment->getContext('Drupal\DrupalExtension\Context\DrushContext');
     $this->jsContext = $environment->getContext('Devinci\DevinciExtension\Context\JavascriptContext');
     $this->drupalContext = $environment->getContext('Drupal\DrupalExtension\Context\DrupalContext');
-
   }
 
+  /**
+   * Get node by title from Database.
+   *
+   * @param $title: title of the node.
+   *
+   * @return Node or FALSE
+   */
+  public function getNodeByTitle($title) {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+      ->propertyCondition('title', $title)
+      ->range(0, 1);
+    $result = $query->execute();
+    if (isset($result['node'])) {
+      $nid = array_keys($result['node']);
+      return entity_load('node', $nid);
+    }
+    return false;
+  }
 
   /**
    * Get the currently logged in user.
    */
   public function getCurrentUser() {
-    // Rely on DrupalExtension to keep track of the current user.
-    return $this->drupalContext->user;
+    //Rely on DrupalExtension to keep track of the current user.
+    // Disable notice when author is not present
+    return @$this->drupalContext->user;
   }
 
   public function visitPage($named_page, $sub_path = null) {
@@ -168,6 +227,35 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
   }
 
 
+  /**
+   * Check if module exists and can be enabled.
+   *
+   * Simply using drupal's modoule_exists() function will not work here because 
+   * we are potentially enabling modules that may not even be in the code base.
+   */
+  protected static function shouldEnableModule($module = "") {
+    $module = (string) $module;
+
+    if (empty($module)) {
+      throw new \Exception("Cannot check if an empty String can be enabled.");
+    }
+
+    $modules = array_keys(system_rebuild_module_data());
+    if (!in_array($module, $modules)) {
+      throw new \Exception("Cannot enable non-existing module.");
+    }
+
+    $behat_module_check_enabled = "behat_{$module}_enabled_by_default";
+    $enabled = variable_get($behat_module_check_enabled, NULL);
+
+    if (is_null($enabled)) {
+      $enabled = module_exists($module);
+      variable_set($behat_module_check_enabled, $enabled);
+    }
+
+    return !$enabled;
+  }
+
   public function assertCanViewPage($named_page, $sub_path = null, $assert_code = null){
     $session = $this->visitPage($named_page, $sub_path);
     $code = $this->getStatusCode();
@@ -208,7 +296,6 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
     $this->fakeSession = $session;
     return $session;
   }
-
 
   public function visit($url, $session = null) {
     if (!$session) {
