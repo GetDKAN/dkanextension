@@ -142,8 +142,9 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
    * Get the currently logged in user.
    */
   public function getCurrentUser() {
-    // Rely on DrupalExtension to keep track of the current user.
-    return $this->drupalContext->user;
+    //Rely on DrupalExtension to keep track of the current user.
+    // Disable notice when author is not present
+    return @$this->drupalContext->user;
   }
 
   public function visitPage($named_page, $sub_path = null) {
@@ -225,6 +226,35 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
     $this->assertOnUrl($assert_url);
   }
 
+
+  /**
+   * Check if module exists and can be enabled.
+   *
+   * Simply using drupal's modoule_exists() function will not work here because 
+   * we are potentially enabling modules that may not even be in the code base.
+   */
+  protected static function shouldEnableModule($module = "") {
+    $module = (string) $module;
+
+    if (empty($module)) {
+      throw new \Exception("Cannot check if an empty String can be enabled.");
+    }
+
+    $modules = array_keys(system_rebuild_module_data());
+    if (!in_array($module, $modules)) {
+      throw new \Exception("Cannot enable non-existing module.");
+    }
+
+    $behat_module_check_enabled = "behat_{$module}_enabled_by_default";
+    $enabled = variable_get($behat_module_check_enabled, NULL);
+
+    if (is_null($enabled)) {
+      $enabled = module_exists($module);
+      variable_set($behat_module_check_enabled, $enabled);
+    }
+
+    return !$enabled;
+  }
 
   public function assertCanViewPage($named_page, $sub_path = null, $assert_code = null){
     $session = $this->visitPage($named_page, $sub_path);
