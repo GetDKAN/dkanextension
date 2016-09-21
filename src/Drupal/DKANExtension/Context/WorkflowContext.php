@@ -66,7 +66,7 @@ class WorkflowContext extends RawDKANContext {
       'workbench_moderation',
     ));
 
-    cache_clear_all();
+    drupal_flush_all_caches();
   }
 
   /**
