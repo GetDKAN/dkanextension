@@ -291,6 +291,18 @@ class RawDKANEntityContext extends RawDKANContext {
         case 'field_item_link':
           $wrapper->$property->set(array("url" => $value));
           break;
+        // Files
+        case 'field_item_file':
+          $file = (object) array(
+            'uri' => $value,
+            'status' => FILE_STATUS_PERMANENT,
+            'filename' => basename($value),
+            'filemime' => file_get_mimetype($value),
+            'timestamp' => time(),
+          );
+          file_save($file);
+          $wrapper->$property->file->set($file);
+          break;
         case 'token':
           // References to nodes
         case 'safeword_field':
