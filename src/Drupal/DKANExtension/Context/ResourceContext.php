@@ -45,4 +45,24 @@ class ResourceContext extends RawDKANEntityContext{
     variable_set("dkan_dataset_format_previews_tid{$format->tid}", $preview_settings);
   }
 
+  /**
+   * @Then I should see a :previewtype preview
+   */
+  public function iShouldSeeAPreview($previewtype)
+  {
+    // XPATH for particualar preview type
+    $previewtype_paths = array(
+      'recline' => '//div[@class="recline-data-explorer"]',
+      'zip' => '//div[@id="recline-zip-list"]',
+      'image' => '//div[@id="recline-image-preview"]',
+      'xm' => '//div[@id="recline-xml-preview"]',
+      'json' => '//div[@id="recline-data-json"]',
+      'geojson' => '//div[@id="map"]',
+      // @todo: Add wms and arcgis tests
+    );
+    $preview = $page->find('xpath', $previewtype_paths[$previewtype]);
+    if ($preview === NULL) {
+      throw new \InvalidArgumentException(sprintf('Recline preview not found on page.'));
+    }
+  }
 }
