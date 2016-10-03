@@ -107,6 +107,46 @@ class PODContext extends RawDKANContext {
   }
 
   /**
+   * @Then I should see :option license values
+   */
+  public function iShouldSeeLicenseValues($option)
+  {
+    // Get the list of licenses provided by DKAN.
+    $licenses = dkan_dataset_content_types_license_subscribe();
+
+    // Clean the array values and remove all non POD valid licenses if required.
+    foreach ($licenses as $key => $value) {
+      if (($option != 'all') && !isset($value['uri'])) {
+          unset($licenses[$key]);
+      } else {
+        $licenses[$key] = $value['label'];
+      }
+    }
+
+    // Append the 'None' values.
+    if ($option === 'all') {
+      $licenses[] = '- Select a value -';
+      $licenses[] = 'Other';
+    }
+
+    // Get the list of licenses that were displayed.
+    $available_licenses = array();
+    $session = $this->getSession();
+    $xpath = "//select[@name='field_license[und][select]']//option";
+    $elements = $session->getPage()->findAll('xpath', $session->getSelectorsHandler()->selectorToXpath('xpath', $xpath));
+    foreach ($elements as $element) {
+      $available_licenses[] = $element->getText();
+    }
+
+    // Compare the list of expected licenses with the list of available licenses.
+    $result = array_diff($available_licenses, $licenses);
+    if (!empty($result)) {
+      throw new \Exception(sprintf('The list of available licenses differs from the
+      list of expected licenses by the following values: %s', implode(',', $result)));
+    }
+  }
+
+  /**
    * @Then I should see all POD required fields
    */
   public function iShouldSeeAllPodRequiredFields()
