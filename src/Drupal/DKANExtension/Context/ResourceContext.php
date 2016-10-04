@@ -70,6 +70,7 @@ class ResourceContext extends RawDKANEntityContext{
       'geojson' => '//div[@id="map"]',
       // @todo: Add wms and arcgis tests
     );
+    $page = $this->getSession()->getPage();
     $preview = $page->find('xpath', $previewtype_paths[$previewtype]);
     if ($preview === NULL) {
       throw new \InvalidArgumentException(sprintf('Recline preview not found on page.'));
