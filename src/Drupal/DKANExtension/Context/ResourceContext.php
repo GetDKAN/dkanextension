@@ -65,7 +65,7 @@ class ResourceContext extends RawDKANEntityContext{
       'recline' => '//div[@class="recline-data-explorer"]',
       'zip' => '//div[@id="recline-zip-list"]',
       'image' => '//div[@id="recline-image-preview"]',
-      'xm' => '//div[@id="recline-xml-preview"]',
+      'xml' => '//div[@id="recline-xml-preview"]',
       'json' => '//div[@id="recline-data-json"]',
       'geojson' => '//div[@id="map"]',
       // @todo: Add wms and arcgis tests
@@ -73,7 +73,7 @@ class ResourceContext extends RawDKANEntityContext{
     $page = $this->getSession()->getPage();
     $preview = $page->find('xpath', $previewtype_paths[$previewtype]);
     if ($preview === NULL) {
-      throw new \InvalidArgumentException(sprintf('Recline preview not found on page.'));
+      throw new \InvalidArgumentException(sprintf('Preview of type %s not found on page.', $previewtype));
     }
   }
 }
