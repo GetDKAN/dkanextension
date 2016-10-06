@@ -1,5 +1,7 @@
 <?php
 
+namespace Drupal\DKANExtension\Context;
+
 use Drupal\DKANExtension\Context\RawDKANEntityContext;
 use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\Gherkin\Node\PyStringNode;
