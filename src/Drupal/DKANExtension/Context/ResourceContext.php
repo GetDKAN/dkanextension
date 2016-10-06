@@ -55,4 +55,25 @@ class ResourceContext extends RawDKANEntityContext{
         $this->moderate($wrapper, $fields);
     }
 
+  /**
+   * @Then I should see a :previewtype preview
+   */
+  public function iShouldSeeAPreview($previewtype)
+  {
+    // XPATH for particualar preview type
+    $previewtype_paths = array(
+      'recline' => '//div[@class="recline-data-explorer"]',
+      'zip' => '//div[@id="recline-zip-list"]',
+      'image' => '//div[@id="recline-image-preview"]',
+      'xml' => '//div[@id="recline-xml-preview"]',
+      'json' => '//div[@id="recline-data-json"]',
+      'geojson' => '//div[@id="map"]',
+      // @todo: Add wms and arcgis tests
+    );
+    $page = $this->getSession()->getPage();
+    $preview = $page->find('xpath', $previewtype_paths[$previewtype]);
+    if ($preview === NULL) {
+      throw new \InvalidArgumentException(sprintf('Preview of type %s not found on page.', $previewtype));
+    }
+  }
 }
