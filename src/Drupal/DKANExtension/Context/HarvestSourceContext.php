@@ -103,7 +103,7 @@ class HarvestSourceContext extends RawDKANEntityContext {
     $harvest_migrations = array();
     foreach ($migrations as $name => $migration) {
       if(strpos($name , 'dkan_harvest') === 0) {
-        $migration = Migration::getInstance($name);
+        $migration = \Migration::getInstance($name);
         $migration->processRollback();
       }
     }
@@ -115,7 +115,7 @@ class HarvestSourceContext extends RawDKANEntityContext {
   public function theContentShouldBe($content_title, $status)
   {
     // Get content by title.
-    $query = new EntityFieldQuery();
+    $query = new \EntityFieldQuery();
     $result = $query->entityCondition('entity_type', 'node')
       ->propertyCondition('title', $content_title)
       ->propertyOrderBy('changed', $direction = 'DESC')
