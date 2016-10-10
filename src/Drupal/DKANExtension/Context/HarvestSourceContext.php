@@ -123,12 +123,18 @@ class HarvestSourceContext extends RawDKANEntityContext {
 
     // Load content if any and generate wrapper.
     if (!empty($result['node'])) {
+      if ($status === 'deleted') {
+        throw new \Exception("Content with title '$content_title' was found.");
+      }
       $content_ids = array_keys($result['node']);
       $content_id = current($content_ids);
       $content = node_load($content_id, NULL, TRUE);
       $content_wrapper = entity_metadata_wrapper('node', $content);
     } else {
-      throw new \Exception("Content with title '$content_title' was not found.");
+      if ($status != 'deleted') {
+        throw new \Exception("Content with title '$content_title' was not found.");
+      }
+      return TRUE;
     }
 
     // Check content status.
