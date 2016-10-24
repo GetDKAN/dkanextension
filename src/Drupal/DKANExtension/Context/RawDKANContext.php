@@ -17,6 +17,8 @@ use Behat\Behat\Tester\Exception\PendingException;
 use EntityFieldQuery;
 use \stdClass;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
+use Behat\Testwork\Hook\Scope\BeforeSuiteScope;
+use Behat\Testwork\Hook\Scope\AfterSuiteScope;
 
 /**
  * Defines application features from the specific context.
@@ -53,6 +55,21 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
    * @var Session
    */
   protected $fakeSession;
+
+  /**
+   * @BeforeSuite
+   */
+  public static function disableAdminMenuCache(BeforeSuiteScope $scope) {
+    // Turn off cache so the menu lives in the html.
+    variable_set('admin_menu_cache_client', FALSE);
+  }
+
+  /**
+   * @AfterSuite
+   */
+  public static function enableAdminMenuCache(AfterSuiteScope $scope) {
+    variable_set('admin_menu_cache_client', TRUE);
+  }
 
   /**
    * @BeforeScenario @disablecaptcha
