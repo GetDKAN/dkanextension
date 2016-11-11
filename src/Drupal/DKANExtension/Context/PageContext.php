@@ -209,4 +209,17 @@ class PageContext extends RawDKANContext {
     // Assume mean getting a 403 (Access Denied), not just missing or an error.
     $this->visitPage($named_entity, "delete");
   }
+
+  /**
+   * Checks if the current URL contains the specified base path.
+   */
+  public function containsBasePath($session, $base_path) {
+    $current_path = $session->getCurrentUrl();
+    $base_path = $this->getMinkParameter("base_url") . $base_path;
+    if (strpos($current_path, $base_path) === 0) {
+      return TRUE;
+    }
+
+    return FALSE;
+  }
 }
