@@ -68,7 +68,7 @@ class PODContext extends RawDKANContext {
     // Validate POD.
     $results = open_data_schema_pod_process_validate($url . '/json', TRUE);
     if (!$results['errors']) {
-      throw new \Exception(sprintf('Data.json is not valid.'));
+      throw new \Exception(sprintf('Data.json is valid.'));
     }
   }
 
