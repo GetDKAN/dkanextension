@@ -28,10 +28,12 @@ class PODContext extends RawDKANContext {
     $environment = $scope->getEnvironment();
     $this->pageContext = $environment->getContext('Drupal\DKANExtension\Context\PageContext');
   }
+
   /**
-   * @When I should see a valid data.json
+   * @Then I :should see a valid data.json
    */
-  public function iShouldSeeAValidDatasjon() {
+  public function iSeeAValidDataJson($should)
+  {
     // Change /data.json path to /json during tests. The '.' on the filename breaks tests on CircleCI's server.
     $data_json = open_data_schema_map_api_load('data_json_1_1');
     if ($data_json->endpoint !== 'json') {
@@ -45,8 +47,12 @@ class PODContext extends RawDKANContext {
 
     // Validate POD.
     $results = open_data_schema_pod_process_validate($url . '/json', TRUE);
-    if ($results['errors']) {
+    if ($results['errors'] && $should === 'should') {
       throw new \Exception(sprintf('Data.json is not valid.'));
+    }
+
+    if (!$results['errors'] && $should === 'should not') {
+      throw new \Exception(sprintf('Data.json is valid.'));
     }
   }
 
@@ -117,7 +123,7 @@ class PODContext extends RawDKANContext {
     // Clean the array values and remove all non POD valid licenses if required.
     foreach ($licenses as $key => $value) {
       if (($option != 'all') && !isset($value['uri'])) {
-          unset($licenses[$key]);
+        unset($licenses[$key]);
       } else {
         $licenses[$key] = $value['label'];
       }
