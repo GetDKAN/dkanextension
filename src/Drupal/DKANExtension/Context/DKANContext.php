@@ -56,6 +56,29 @@ class DKANContext extends RawDKANContext {
    * CUSTOM STEPS
    *****************************/
 
+  /**
+   * @Then I should see a cached page
+   */
+  public function iShouldSeeACachedPage(){
+    $session = $this->getSession();
+    $headers = $session->getResponseHeaders();
+    $cacheControl = $headers['Cache-Control'][0];
+    if(strpos($cacheControl, 'public') === false) {
+      throw new \Exception(sprintf("Page should be cached"));
+    }
+  }
+
+  /**
+   * @Then I should not see a cached page
+   */
+  public function iShouldNotSeeACachedPage(){
+    $session = $this->getSession();
+    $headers = $session->getResponseHeaders();
+    $cacheControl = $headers['Cache-Control'][0];
+    if(strpos($cacheControl, 'no-cache') === false) {
+      throw new \Exception(sprintf("Page should not be cached"));
+    }
+  }
 
   /**
    * @Then /^I should see the administration menu$/

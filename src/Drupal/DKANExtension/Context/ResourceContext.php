@@ -56,6 +56,20 @@ class ResourceContext extends RawDKANEntityContext{
     }
 
   /**
+   * @Given I am on (the) :title resource embed page
+   */
+  public function iAmOnResourceEmbedPage($title) {
+    if (empty($title)) {
+      throw new \Exception("Missing title argument");
+    }
+    if ($nodes = $this->getNodeByTitle($title)) {
+      $nid = array_values($nodes)[0]->nid;
+      throw new \Exception("Resource with the title '$title' doesn't exist.");
+    }
+    $this->visit("/node/" . $nid . "/recline-embed");
+  }
+
+  /**
    * @Then I should see a :previewtype preview
    */
   public function iShouldSeeAPreview($previewtype)
