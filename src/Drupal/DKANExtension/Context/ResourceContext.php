@@ -64,6 +64,7 @@ class ResourceContext extends RawDKANEntityContext{
     }
     if ($nodes = $this->getNodeByTitle($title)) {
       $nid = array_values($nodes)[0]->nid;
+    } else {
       throw new \Exception("Resource with the title '$title' doesn't exist.");
     }
     $this->visit("/node/" . $nid . "/recline-embed");
