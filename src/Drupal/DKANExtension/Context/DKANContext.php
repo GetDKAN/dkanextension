@@ -57,25 +57,16 @@ class DKANContext extends RawDKANContext {
    *****************************/
 
   /**
-   * @Then I should see a cached page
+   * @Then I :outcome see a cached page
    */
-  public function iShouldSeeACachedPage(){
+  public function iShouldSeeACachedPage($outcome){
     $session = $this->getSession();
     $headers = $session->getResponseHeaders();
     $cacheControl = $headers['Cache-Control'][0];
-    if(strpos($cacheControl, 'public') === false) {
+    if(strpos($cacheControl, 'public') === false && $outcome === 'should') {
       throw new \Exception(sprintf("Page should be cached"));
     }
-  }
-
-  /**
-   * @Then I should not see a cached page
-   */
-  public function iShouldNotSeeACachedPage(){
-    $session = $this->getSession();
-    $headers = $session->getResponseHeaders();
-    $cacheControl = $headers['Cache-Control'][0];
-    if(strpos($cacheControl, 'no-cache') === false) {
+    if(strpos($cacheControl, 'no-cache') === false && $outcome === 'should not') {
       throw new \Exception(sprintf("Page should not be cached"));
     }
   }
