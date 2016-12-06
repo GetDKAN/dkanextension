@@ -58,6 +58,7 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
 
   protected $old_global_user;
 
+  protected $cacheSettings;
   /**
    * @BeforeSuite
    */
@@ -160,6 +161,49 @@ class RawDKANContext extends RawDrupalContext implements DKANAwareInterface {
     $this->minkContext = $environment->getContext('Drupal\DrupalExtension\Context\MinkContext');
     $this->jsContext = $environment->getContext('Devinci\DevinciExtension\Context\JavascriptContext');
     $this->drupalContext = $environment->getContext('Drupal\DrupalExtension\Context\DrupalContext');
+  }
+
+  /**
+   * Save cache settings in a temporary variable.
+   */
+  protected function saveCacheSettings() {
+    $this->cacheSettings = array(
+      "cache" => variable_get("cache"),
+      "page_cache_maximum_age" => variable_get("page_cache_maximum_age"),
+      "cache_lifetime" => variable_get("cache_lifetime"),
+    );
+  }
+  /**
+   * @BeforeScenario @cacheDisabled
+   */
+  public function pageCacheIsOff()
+  {
+    $this->saveCacheSettings();
+    variable_set("cache", FALSE);
+  }
+
+  /**
+   * @BeforeScenario @cacheEnabled
+   */
+  public function pageCacheIsOn()
+  {
+    $this->saveCacheSettings();
+    variable_set("cache", TRUE);
+    variable_set("page_cache_maximum_age", 300);
+    variable_set("cache_lifetime", 180);
+  }
+
+  /**
+   * @AfterScenario
+   */
+  public function restoreCacheSettings()
+  {
+    if($this->cacheSettings) {
+      variable_set("cache", $this->cacheSettings["cache"]);
+      variable_set("page_cache_maximum_age", $this->cacheSettings["page_cache_maximum_age"]);
+      variable_set("cache_lifetime", $this->cacheSettings["cache_lifetime"]);
+      $this->cacheSettings = null;
+    }
   }
 
   /**
