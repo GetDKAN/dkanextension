@@ -1,3 +1,5 @@
+**DEPRECATED:** This module has been moved into [DKAN core](https://github.com/NuCivic/dkan) for release 7.x-1.13. To maintain backward compatibility this project will remain on Github but new features will be applied directly to the DKAN core folder `test/dkanextension`.
+
 # Behat DKAN Context
 
 This creates a feature context for DKAN and NuCivic specific steps.
