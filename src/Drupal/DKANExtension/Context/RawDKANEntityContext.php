@@ -91,7 +91,7 @@ class RawDKANEntityContext extends RawDKANContext implements SnippetAcceptingCon
   public function gatherContexts(BeforeScenarioScope $scope) {
     $environment = $scope->getEnvironment();
     $this->pageContext = $environment->getContext('Drupal\DKANExtension\Context\PageContext');
-    $this->searchContext = $environment->getContext('Drupal\DKANExtension\Context\SearchAPIContext');
+    // $this->searchContext = $environment->getContext('Drupal\DKANExtension\Context\SearchAPIContext');
   }
 
   /**
@@ -127,7 +127,7 @@ class RawDKANEntityContext extends RawDKANContext implements SnippetAcceptingCon
     $this->entityStore->names_flush();
 
     // Make sure that we process any index items if they were deleted.
-    $this->searchContext->process();
+    // $this->searchContext->process();
   }
 
   /**
@@ -435,7 +435,7 @@ class RawDKANEntityContext extends RawDKANContext implements SnippetAcceptingCon
     }
 
     // Process any outstanding search items.
-    $this->searchContext->process();
+    // $this->searchContext->process();
 
     // Add the created entity to the array so it can be deleted later.
     $id = $wrapper->getIdentifier();
